@@ -12,28 +12,10 @@ import { openInvoice } from "@/lib/invoice";
 
 /* ── Animated route: origin → destination arc with a vessel in motion ── */
 function RouteVisual({ shipment }: { shipment: Shipment }) {
-  const point = (p?: { lat: number; lng: number }) =>
-    p && Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
-    !(Math.abs(p.lat) < 0.01 && Math.abs(p.lng) < 0.01) ? p : null;
-  const a = point(shipment.origin);
-  const b = point(shipment.destination);
-  const c = point(shipment.currentLocation);
-  let progress = STATUS_PROGRESS[shipment.status] ?? 0.5;
-  if (a && b && c) {
-    const cos = Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
-    const ax = a.lng * cos, ay = a.lat;
-    const bx = b.lng * cos, by = b.lat;
-    const cx = c.lng * cos, cy = c.lat;
-    const dx = bx - ax, dy = by - ay;
-    const length = dx * dx + dy * dy;
-    if (length > 0) {
-      progress = Math.max(0.02, Math.min(1, ((cx - ax) * dx + (cy - ay) * dy) / length));
-    }
-  }
+  const progress = STATUS_PROGRESS[shipment.status] ?? 0.5;
 
-  // The admin/API record is the source of truth. Never invent progress toward
-  // the destination on the client, or the vessel can appear ahead of the
-  // location and status the admin has set.
+  // The admin/API status is the source of truth. Each status owns one fixed
+  // checkpoint, so the vessel cannot appear ahead of the status being shown.
   const visualProgress = shipment.status === "delivered" ? 1 : progress;
 
   // Quadratic arc across the panel; vehicle sits at `progress` along it

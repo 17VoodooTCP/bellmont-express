@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Shipment } from "@/lib/api";
+import { STATUS_LABEL, STATUS_PROGRESS, type Shipment } from "@/lib/api";
 import "leaflet/dist/leaflet.css";
 
 const hasCoords = (p?: { lat: number; lng: number }) =>
@@ -38,6 +38,9 @@ async function geocode(city?: string) {
 
 export default function RouteMap({ shipment }: { shipment: Shipment }) {
   const box = useRef<HTMLDivElement>(null);
+  const stageLabel = shipment.status === "delivered"
+    ? shipment.destination.city
+    : STATUS_LABEL[shipment.status];
 
   useEffect(() => {
     let dead = false;
@@ -71,7 +74,17 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
       ]);
       if (dead || !box.current) return;
 
-      const pts = [o, c, d].filter(Boolean) as Point[];
+      // Status is the authoritative checkpoint for the visual tracker. This
+      // keeps the map and route graphic on the same stop instead of letting a
+      // stale currentLocation or a client animation send the vessel to the end.
+      const statusProgress = STATUS_PROGRESS[shipment.status] ?? 0;
+      const stage = o && d
+        ? {
+            lat: o.lat + (d.lat - o.lat) * statusProgress,
+            lng: o.lng + (d.lng - o.lng) * statusProgress,
+          }
+        : c;
+      const pts = [o, stage, d].filter(Boolean) as Point[];
       if (pts.length < 2) return;
 
       const map = L.map(box.current, {
@@ -116,18 +129,18 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
 
       if (o) L.marker([o.lat, o.lng], { icon: dot("#14170f") }).addTo(map).bindPopup(`<b>Origin</b><br>${escapeHtml(shipment.origin.city)}`);
       if (d) L.marker([d.lat, d.lng], { icon: dot("#61735a", true) }).addTo(map).bindPopup(`<b>Destination</b><br>${escapeHtml(shipment.destination.city)}`);
-      if (c) {
-        L.marker([c.lat, c.lng], { icon: vessel, zIndexOffset: 500 })
+      if (stage) {
+        L.marker([stage.lat, stage.lng], { icon: vessel, zIndexOffset: 500 })
           .addTo(map)
-          .bindPopup(`<b>Live position</b><br>${escapeHtml(shipment.currentLocation?.city || "In transit")}`);
+          .bindPopup(`<b>Live position</b><br>${escapeHtml(stageLabel)}`);
       }
 
       // Planned route, then the traveled leg highlighted to the live vessel.
       if (o && d) L.polyline([[o.lat, o.lng], [d.lat, d.lng]], {
         color: "#aeb8c0", weight: 3, dashArray: "5 11", opacity: 0.75,
       }).addTo(map);
-      if (o && c) {
-        L.polyline([[o.lat, o.lng], [c.lat, c.lng]], {
+      if (o && stage) {
+        L.polyline([[o.lat, o.lng], [stage.lat, stage.lng]], {
           color: "#61735a", weight: 5, opacity: 0.95,
         }).addTo(map);
       }
@@ -147,7 +160,7 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
       <div ref={box} className="h-[420px] w-full overflow-hidden rounded-2xl" aria-label="Live shipment map" />
       <div className="pointer-events-none absolute left-4 top-4 rounded-xl border border-white/80 bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#61735a]">Live position</p>
-        <p className="mt-0.5 text-xs font-semibold text-[#14170f]">{shipment.currentLocation?.city || "Route active"}</p>
+        <p className="mt-0.5 text-xs font-semibold text-[#14170f]">{stageLabel}</p>
       </div>
       <style>{`@keyframes mPulse{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1.8);opacity:0}}`}</style>
     </div>
