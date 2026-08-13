@@ -37,6 +37,9 @@ Create a new Render Blueprint from this repository. Provide these values when pr
 | `DIRECT_URL` | Neon direct PostgreSQL URL |
 | `JWT_SECRET` | generated automatically by Render |
 | `CLIENT_URL` | Vercel project URL, added after the frontend is deployed |
+| `ADMIN_EMAIL` | Your private admin login email |
+| `ADMIN_PASSWORD` | A unique password of at least 16 characters |
+| `ADMIN_NAME` | Optional display name, such as `Bellmont Administrator` |
 
 `NODE_ENV` is set to `production`. Render provides `PORT` automatically.
 
@@ -69,6 +72,10 @@ node -e "console.log(require('node:crypto').randomBytes(64).toString('hex'))"
 ```
 
 Change the seeded administrator credentials before making the admin routes public.
+
+When `ADMIN_EMAIL` and `ADMIN_PASSWORD` are present, the API provisions that
+account as an admin during startup. The password is hashed before it is stored.
+If either variable is missing, no admin account is provisioned.
 
 ## Legacy Express API
 
