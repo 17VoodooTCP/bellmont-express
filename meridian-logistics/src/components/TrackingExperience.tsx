@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   trackShipment,
   Shipment,
@@ -31,6 +31,28 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
     }
   }
 
+  const [motionProgress, setMotionProgress] = useState(progress);
+  useEffect(() => {
+    if (shipment.status === "delivered") {
+      setMotionProgress(1);
+      return;
+    }
+    const duration = 18000;
+    const started = performance.now();
+    let frame = 0;
+    const animate = (now: number) => {
+      const cycle = ((now - started) % (duration * 2)) / duration;
+      const raw = cycle <= 1 ? cycle : 2 - cycle;
+      const eased = raw * raw * (3 - 2 * raw);
+      setMotionProgress(progress + (1 - progress) * eased);
+      frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [progress, shipment.status, shipment.trackingId, shipment.currentLocation?.city]);
+
+  const visualProgress = shipment.status === "delivered" ? 1 : motionProgress;
+
   // Quadratic arc across the panel; vehicle sits at `progress` along it
   const P0 = { x: 70, y: 250 };
   const P1 = { x: 400, y: 60 };
@@ -39,8 +61,8 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
     x: (1 - t) ** 2 * P0.x + 2 * (1 - t) * t * P1.x + t ** 2 * P2.x,
     y: (1 - t) ** 2 * P0.y + 2 * (1 - t) * t * P1.y + t ** 2 * P2.y,
   });
-  const pos = at(progress);
-  const ahead = at(Math.min(progress + 0.02, 1));
+  const pos = at(visualProgress);
+  const ahead = at(Math.min(visualProgress + 0.02, 1));
   const angle = (Math.atan2(ahead.y - pos.y, ahead.x - pos.x) * 180) / Math.PI;
   const arc = `M ${P0.x} ${P0.y} Q ${P1.x} ${P1.y} ${P2.x} ${P2.y}`;
 
@@ -65,7 +87,7 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
         strokeWidth="3.5"
         strokeLinecap="round"
         pathLength={1}
-        strokeDasharray={`${progress} 1`}
+        strokeDasharray={`${visualProgress} 1`}
         style={{ transition: "stroke-dasharray 1.2s cubic-bezier(0.22,1,0.36,1)" }}
       />
 
