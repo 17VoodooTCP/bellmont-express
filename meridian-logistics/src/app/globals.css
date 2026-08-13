@@ -1,0 +1,319 @@
+@import "tailwindcss";
+
+/* ─── BELLMONT EXPRESS design tokens ─────────────────────────
+   Paper-white ground, warm ink, sage green as the single accent.
+   Sage carries every interactive surface, so --sage is tuned to hold
+   white text at AA (contrast ~5.1:1) rather than being merely decorative. */
+:root {
+  --paper: #fbfbf8;        /* warm paper, not clinical white */
+  --paper-raised: #ffffff; /* cards lift above the paper */
+  --ink: #14170f;
+  --ink-soft: #3f453a;
+  --ink-mute: #868b7e;
+  --line: #e7e8e1;
+  --sage: #61735a;         /* primary: buttons, links, focus */
+  --sage-deep: #47543f;    /* hover / pressed */
+  --sage-soft: #9baa90;    /* muted marks, dividers */
+  --sage-tint: #eef1e9;    /* wash backgrounds */
+  --ocean: #f3f5f0;
+  --orange: #ff5a1f;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-mute: var(--ink-mute);
+  --color-line: var(--line);
+  --color-sage: var(--sage);
+  --color-sage-deep: var(--sage-deep);
+  --color-sage-soft: var(--sage-soft);
+  --color-sage-tint: var(--sage-tint);
+  --color-ocean: var(--ocean);
+  --color-orange: var(--orange);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display), var(--font-body), sans-serif;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+::selection { background: var(--orange); color: white; }
+
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ─── Hide every trace of the Google Translate widget ───── */
+#google_translate_element { display: none !important; }
+.goog-te-banner-frame, .goog-te-balloon-frame, .goog-tooltip,
+.goog-te-spinner-pos, #goog-gt-tt, .VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd, .VIpgJd-yAWNEb-VIpgJd-fmcmS-sn54Q {
+  display: none !important;
+  visibility: hidden !important;
+}
+body { top: 0 !important; position: static !important; }
+font[style] { background-color: transparent !important; box-shadow: none !important; }
+
+/* ─── Motion safety ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
+
+/* ─── Liquid glass CTA ──────────────────────────────────── */
+@keyframes glassSheen {
+  from { transform: translateX(-160%) skewX(-18deg); }
+  to   { transform: translateX(260%) skewX(-18deg); }
+}
+@keyframes blobMorph {
+  0%, 100% { border-radius: 46% 54% 56% 44% / 56% 46% 54% 44%; transform: translate(0, 0) scale(1); }
+  33%      { border-radius: 54% 46% 44% 56% / 46% 56% 44% 54%; transform: translate(4%, -6%) scale(1.12); }
+  66%      { border-radius: 50% 50% 52% 48% / 52% 48% 52% 48%; transform: translate(-5%, 4%) scale(0.94); }
+}
+.glass-btn {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), background 0.3s;
+}
+.glass-btn:hover { transform: scale(1.05); background: rgba(255, 255, 255, 0.26); }
+.glass-btn::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: glassSheen 3.2s ease-in-out infinite;
+}
+.glass-blob {
+  position: absolute;
+  filter: blur(30px);
+  opacity: 0.5;
+  animation: blobMorph 11s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Editorial system: static texture and geometry for the landing page. These
+   layers are deliberately non-animated; the existing cinematic motion remains
+   isolated to its original scene components. */
+.section-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.manifesto-rail {
+  background-image: linear-gradient(90deg, transparent 0, transparent 49.9%, rgba(20, 23, 15, 0.05) 50%, transparent 50.1%);
+  background-size: 100% 100%;
+}
+
+.service-field {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    radial-gradient(circle at 82% 20%, rgba(155, 170, 144, 0.18), transparent 24rem);
+  background-position: center;
+  background-size: 5rem 5rem, 5rem 5rem, 100% 100%;
+}
+
+.service-field__glow {
+  border: 1px solid rgba(155, 170, 144, 0.2);
+  box-shadow: 0 0 0 4rem rgba(155, 170, 144, 0.03), 0 0 0 8rem rgba(155, 170, 144, 0.02);
+}
+
+.service-card {
+  background: rgba(20, 23, 15, 0.78);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.service-card:hover {
+  background: rgba(71, 84, 63, 0.72);
+}
+
+.stat-band {
+  background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.12), transparent 38%, rgba(20, 23, 15, 0.08));
+}
+
+.surreal-cta {
+  isolation: isolate;
+  background-image: radial-gradient(circle at 50% 50%, rgba(97, 115, 90, 0.24), transparent 28rem);
+}
+
+.surreal-cta__orb {
+  transform: translate(-50%, -50%) rotate(-18deg) scaleX(1.5);
+  opacity: 0.75;
+}
+
+.surreal-cta__orb--inner {
+  transform: translate(-50%, -50%) rotate(28deg) scaleY(0.62);
+  opacity: 0.9;
+}
+
+/* Review rail: the second copy of the cards enters from the right as the
+   first copy leaves the viewport, so the loop never blinks or teleports. */
+@keyframes reviewSlide {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(calc(-50% - 0.75rem), 0, 0); }
+}
+.review-window {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.review-track {
+  display: flex;
+  width: max-content;
+  gap: 1.5rem;
+  animation: reviewSlide 32s linear infinite;
+}
+.review-window:hover .review-track,
+.review-window:focus-within .review-track { animation-play-state: paused; }
+
+/* Product walkthrough / iPhone concept */
+.platform-showcase {
+  position: relative;
+  overflow: hidden;
+  background: #10130e;
+  color: var(--paper);
+}
+.platform-showcase::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  opacity: 0.3;
+  background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+  mask-image: linear-gradient(90deg, black, transparent 80%);
+}
+.platform-showcase__rings {
+  position: absolute;
+  right: 9%;
+  top: 50%;
+  width: 35rem;
+  height: 35rem;
+  border: 1px solid rgba(155,170,144,.18);
+  border-radius: 50%;
+  transform: translateY(-50%) rotate(-24deg) scaleX(.64);
+  box-shadow: 0 0 0 4rem rgba(155,170,144,.03), 0 0 0 8rem rgba(155,170,144,.02);
+}
+.platform-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  padding: .65rem .85rem;
+  color: rgba(251,251,248,.6);
+  font-size: .72rem;
+  font-weight: 600;
+  transition: .25s ease;
+}
+.platform-tab:hover { border-color: rgba(155,170,144,.7); color: var(--paper); }
+.platform-tab--active { border-color: var(--sage); background: var(--sage); color: white; }
+.platform-cta {
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 999px;
+  background: var(--paper);
+  padding: .9rem 1.25rem;
+  color: var(--ink);
+  font-size: .82rem;
+  font-weight: 700;
+  transition: transform .25s ease, background .25s ease;
+}
+.platform-cta:hover { transform: translateY(-2px); background: var(--sage-soft); }
+.phone-stage { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; }
+.iphone-shell {
+  position: relative;
+  width: min(18rem, 78vw);
+  aspect-ratio: .49;
+  border: 5px solid #31372e;
+  border-radius: 3.1rem;
+  padding: .55rem;
+  background: linear-gradient(145deg, #6b7565, #252b24 42%, #11140f);
+  box-shadow: 1.5rem 2rem 4rem rgba(0,0,0,.42), inset .15rem .1rem .2rem rgba(255,255,255,.22);
+  animation: none;
+}
+.iphone-shell::before { content: ""; position: absolute; inset: .35rem; border: 1px solid rgba(255,255,255,.18); border-radius: 2.7rem; pointer-events: none; }
+.iphone-button { position: absolute; left: -8px; width: 4px; border-radius: 3px; background: #4d5748; }
+.iphone-button--silent { top: 4.8rem; height: 1.6rem; }
+.iphone-button--volume { top: 7.1rem; height: 3rem; }
+.iphone-button--power { left: auto; right: -8px; top: 8rem; height: 3.7rem; }
+.iphone-screen { position: relative; height: 100%; overflow: hidden; border-radius: 2.55rem; background: #f7f8f3; color: var(--ink); }
+.iphone-statusbar { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 1.05rem 1.2rem .35rem; font-size: .55rem; font-weight: 700; }
+.iphone-island { position: absolute; left: 50%; top: .65rem; width: 4.7rem; height: 1.35rem; border-radius: 999px; background: #090b08; transform: translateX(-50%); }
+.phone-screen__content { padding: .7rem 1.1rem 1.8rem; }
+.phone-greeting, .phone-topline, .phone-section-row, .phone-route-card>div, .phone-proof-card { display: flex; align-items: center; justify-content: space-between; }
+.phone-greeting { position: relative; display: grid; justify-content: start; gap: .08rem; font-size: .62rem; color: #697064; }
+.phone-greeting strong { font-size: 1.1rem; color: var(--ink); }
+.phone-avatar, .phone-chat-avatar, .phone-proof-avatar { position: absolute; right: 0; top: .1rem; display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 50%; background: var(--sage); color: white; font-size: .55rem; font-weight: 700; }
+.phone-label { margin-top: 1.8rem; color: #939b8e; font-size: .48rem; font-weight: 700; letter-spacing: .15em; }
+.phone-shipment-card, .phone-route-card, .phone-chat-preview { margin-top: .55rem; border-radius: 1.1rem; background: white; padding: .9rem; box-shadow: 0 .6rem 1.5rem rgba(35,42,30,.08); }
+.phone-status-dot { display: inline-block; width: .42rem; height: .42rem; margin-right: .3rem; border-radius: 50%; background: var(--sage); box-shadow: 0 0 0 .2rem rgba(97,115,90,.14); }
+.phone-status { color: var(--sage-deep); font-size: .55rem; font-weight: 700; }
+.phone-more { color: #9ba397; font-size: .7rem; }
+.phone-shipment-card>strong { display: block; margin-top: .75rem; font-size: 1.05rem; letter-spacing: -.04em; }
+.phone-shipment-route { display: flex; align-items: center; gap: .38rem; margin-top: .75rem; color: #747c70; font-size: .5rem; }
+.phone-line { height: 1px; flex: 1; background: linear-gradient(90deg, var(--sage), #cdd4c8); }
+.phone-progress { height: .25rem; margin-top: .8rem; overflow: hidden; border-radius: 99px; background: #e9ede6; }
+.phone-progress span { display: block; width: 68%; height: 100%; border-radius: inherit; background: var(--sage); }
+.phone-shipment-card small, .phone-activity small, .phone-route-card p, .phone-route-stats small, .phone-support-intro small, .phone-chat-preview small, .phone-proof-copy small, .phone-proof-card small { display: block; margin-top: .35rem; color: #92998d; font-size: .49rem; }
+.phone-section-row { margin-top: 1.2rem; font-size: .58rem; font-weight: 700; }
+.phone-section-row span:last-child { color: var(--sage); font-size: .5rem; }
+.phone-activity { display: flex; align-items: center; gap: .6rem; margin-top: .8rem; font-size: .58rem; }
+.phone-activity__mark { display: grid; width: 1.35rem; height: 1.35rem; place-items: center; border-radius: .45rem; background: var(--sage); color: white; font-size: .65rem; }
+.phone-activity__mark--soft { background: var(--sage-tint); color: var(--sage); }
+.phone-activity strong { display: block; font-size: .56rem; }
+.phone-topline { font-size: .72rem; }
+.phone-back, .phone-share, .phone-help { color: var(--sage); font-size: 1rem; }
+.phone-map { position: relative; height: 12rem; margin: .9rem -.2rem .7rem; overflow: hidden; border-radius: 1.2rem; background: #e7ece3; }
+.phone-map__grid { position: absolute; inset: -30%; opacity: .5; background-image: linear-gradient(25deg, transparent 48%, #fff 49%, #fff 51%, transparent 52%), linear-gradient(110deg, transparent 47%, #fff 48%, #fff 50%, transparent 51%); background-size: 3.2rem 2.1rem; transform: rotate(-12deg); }
+.phone-map__city { position: absolute; color: #8e988b; font-size: .38rem; font-weight: 700; letter-spacing: .1em; }
+.phone-map__city--origin { left: 1rem; bottom: 1.7rem; }.phone-map__city--destination { right: .65rem; top: 1.2rem; }
+.phone-map__pin { position: absolute; z-index: 1; width: .75rem; height: .75rem; border: 3px solid white; border-radius: 50%; background: var(--sage); box-shadow: 0 .2rem .4rem rgba(20,23,15,.2); }.phone-map__pin--origin { left: 1.25rem; bottom: 2.4rem; }.phone-map__pin--current { left: 47%; top: 47%; background: var(--orange); }.phone-map__pin--destination { right: .9rem; top: 1.8rem; }
+.phone-map__route { position: absolute; inset: 0; width: 100%; height: 100%; }
+.phone-route-card strong { font-size: .62rem; }.phone-route-card p { margin: .7rem 0; }.phone-route-stats { display: flex; gap: 1.3rem; border-top: 1px solid #edf0ea; padding-top: .7rem; }.phone-route-stats strong { display: block; margin-top: .2rem; font-size: .65rem; }
+.phone-support-intro { margin-top: 1.5rem; text-align: center; }.phone-support-icon { display: grid; width: 2.8rem; height: 2.8rem; margin: 0 auto .8rem; place-items: center; border-radius: 1rem; background: var(--sage-tint); color: var(--sage); font-size: 1.3rem; }.phone-support-intro strong { display: block; font-size: .95rem; }.phone-quick-actions { display: grid; gap: .45rem; margin-top: 1.3rem; }.phone-quick-actions button { border: 1px solid #e4e9e0; border-radius: .7rem; background: white; padding: .65rem; text-align: left; color: var(--ink-soft); font-size: .52rem; }.phone-chat-preview { display: flex; align-items: center; gap: .55rem; margin-top: .9rem; }.phone-chat-avatar { position: static; width: 1.7rem; height: 1.7rem; flex: 0 0 auto; }.phone-chat-preview strong { display: block; font-size: .56rem; }.phone-chevron { margin-left: auto; color: var(--sage); font-size: 1rem; }
+.phone-proof-art { position: relative; display: grid; place-items: center; height: 8rem; margin-top: 1rem; border-radius: 1.4rem; background: radial-gradient(circle, #dfe9dc, #f7f8f3 67%); }.phone-proof-check { display: grid; width: 3.2rem; height: 3.2rem; place-items: center; border-radius: 50%; background: var(--sage); color: white; font-size: 1.6rem; box-shadow: 0 0 0 .6rem rgba(97,115,90,.12); }.phone-proof-art span:last-child { position: absolute; bottom: .7rem; color: var(--sage-deep); font-size: .48rem; font-weight: 700; letter-spacing: .18em; }.phone-proof-copy { margin-top: 1rem; text-align: center; }.phone-proof-copy strong { display: block; font-size: .85rem; }.phone-proof-card { margin-top: 1.1rem; border-radius: .9rem; background: white; padding: .65rem; }.phone-proof-avatar { position: static; width: 1.7rem; height: 1.7rem; flex: 0 0 auto; }.phone-proof-card strong { display: block; font-size: .55rem; }.phone-proof-card small { margin-top: .12rem; }.phone-proof-badge { margin-left: auto; border-radius: 99px; background: var(--sage-tint); padding: .25rem .4rem; color: var(--sage-deep); font-size: .42rem; font-weight: 700; }.phone-primary-action { width: 100%; margin-top: 1rem; border-radius: 99px; background: var(--ink); padding: .7rem; color: white; font-size: .58rem; font-weight: 700; }
+.iphone-homebar { position: absolute; bottom: .65rem; left: 50%; width: 5rem; height: .25rem; border-radius: 99px; background: var(--ink); transform: translateX(-50%); }
+.social-icon:nth-child(1):hover { background: #11140f; }
+.social-icon:nth-child(2):hover { background: #0a66c2; }
+.social-icon:nth-child(3):hover { background: #1877f2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .review-track, .iphone-shell { animation: none; }
+}
+
+/* ─── Ambient ocean drift (GPU-cheap transforms only) ───── */
+@keyframes swell {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-1440px); }
+}

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Bellmont Express vessel badge</title>
+  <desc id="desc">A minimal ship silhouette carrying a neat stack of containers inside a rounded badge.</desc>
+  <rect x="28" y="28" width="184" height="184" rx="48" fill="#14170f"/>
+  <path d="M58 143h124l-20 29H79c-8 0-15-5-21-14l-10-15h10Z" fill="#61735a"/>
+  <path d="M75 135V89h90v46M91 89V70h58v19" fill="none" stroke="#fbfbf8" stroke-width="7" stroke-linejoin="round"/>
+  <g fill="#fbfbf8">
+    <rect x="82" y="97" width="18" height="18" rx="2"/>
+    <rect x="105" y="97" width="18" height="18" rx="2"/>
+    <rect x="128" y="97" width="18" height="18" rx="2"/>
+    <rect x="93" y="118" width="18" height="18" rx="2"/>
+    <rect x="116" y="118" width="18" height="18" rx="2"/>
+    <rect x="139" y="118" width="18" height="18" rx="2"/>
+  </g>
+  <path d="M55 185c28-13 52-13 75 0 20 11 38 11 57 1" fill="none" stroke="#fbfbf8" stroke-width="6" stroke-linecap="round"/>
+</svg>

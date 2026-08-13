@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Bellmont Express waypoint mark</title>
+  <desc id="desc">A waypoint pin containing a precise cargo grid and a route line that continues beyond it.</desc>
+  <path d="M120 27c-43 0-78 34-78 76 0 57 78 111 78 111s78-54 78-111c0-42-35-76-78-76Z" fill="#14170f"/>
+  <path d="M120 52c-28 0-51 22-51 50 0 37 51 78 51 78s51-41 51-78c0-28-23-50-51-50Z" fill="#fbfbf8"/>
+  <g fill="#61735a">
+    <rect x="92" y="79" width="18" height="18" rx="2"/>
+    <rect x="114" y="79" width="18" height="18" rx="2"/>
+    <rect x="136" y="79" width="18" height="18" rx="2"/>
+    <rect x="92" y="101" width="18" height="18" rx="2"/>
+    <rect x="114" y="101" width="18" height="18" rx="2"/>
+    <rect x="136" y="101" width="18" height="18" rx="2"/>
+  </g>
+  <path d="M30 207c27-15 52-18 75-9 22 9 45 8 65-6 16-11 29-15 43-12" fill="none" stroke="#61735a" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="213" cy="180" r="8" fill="#14170f"/>
+</svg>

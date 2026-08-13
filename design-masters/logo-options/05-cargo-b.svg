@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Bellmont Express cargo B</title>
+  <desc id="desc">A bold B built from two container columns connected by a route curve.</desc>
+  <path d="M54 41h68c42 0 67 18 67 47 0 18-9 31-26 39 19 7 30 21 30 40 0 31-28 52-74 52H54V41Zm34 29v43h31c22 0 35-8 35-22s-13-21-35-21H88Zm0 70v49h36c23 0 37-9 37-25s-14-24-37-24H88Z" fill="#61735a"/>
+  <path d="M54 41h34v148h-34z" fill="#14170f"/>
+  <path d="M37 194c24-15 47-19 68-11 22 8 44 7 64-7 14-10 28-13 43-10" fill="none" stroke="#14170f" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="212" cy="166" r="8" fill="#61735a"/>
+</svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Bellmont Express bell container mark</title>
+  <desc id="desc">A clean split bell containing three stacked cargo containers above a wave.</desc>
+  <path fill="#14170f" d="M120 24c-38 0-61 30-61 72l-5 55h38v14h28V24Z"/>
+  <path fill="#61735a" d="M120 24c38 0 61 30 61 72l5 55h-38v14h-28V24Z"/>
+  <g fill="none" stroke="#fbfbf8" stroke-width="4">
+    <rect x="96" y="93" width="22" height="22" rx="2" fill="#61735a"/>
+    <rect x="122" y="93" width="22" height="22" rx="2" fill="#14170f"/>
+    <rect x="82" y="119" width="22" height="22" rx="2" fill="#14170f"/>
+    <rect x="108" y="119" width="22" height="22" rx="2" fill="#61735a"/>
+    <rect x="134" y="119" width="22" height="22" rx="2" fill="#14170f"/>
+  </g>
+  <circle cx="120" cy="166" r="9" fill="#14170f"/>
+  <path d="M38 198c26-14 52-14 78 0 20 11 41 11 66-1" fill="none" stroke="#14170f" stroke-width="8" stroke-linecap="round"/>
+  <path d="M151 211c18-9 35-9 51 0" fill="none" stroke="#61735a" stroke-width="8" stroke-linecap="round"/>
+</svg>

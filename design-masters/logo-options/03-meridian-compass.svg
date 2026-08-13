@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Bellmont Express meridian compass mark</title>
+  <desc id="desc">A compass-like circle crossed by a meridian line and anchored by a cargo container.</desc>
+  <circle cx="120" cy="112" r="73" fill="none" stroke="#14170f" stroke-width="12"/>
+  <path d="M120 39c-22 21-34 45-34 73s12 52 34 73c22-21 34-45 34-73s-12-52-34-73Z" fill="#eef1e9" stroke="#61735a" stroke-width="7"/>
+  <path d="M47 112h146" stroke="#14170f" stroke-width="7" stroke-linecap="round"/>
+  <path d="m120 19 11 22h-22l11-22Z" fill="#61735a"/>
+  <path d="m120 205 11-22h-22l11 22Z" fill="#14170f"/>
+  <rect x="79" y="105" width="82" height="38" rx="4" fill="#14170f"/>
+  <path d="M92 105v38M107 105v38M122 105v38M137 105v38M152 105v38" stroke="#61735a" stroke-width="4"/>
+  <path d="M57 214c22-8 43-8 63 0 20 8 42 8 63 0" fill="none" stroke="#61735a" stroke-width="8" stroke-linecap="round"/>
+</svg>

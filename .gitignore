@@ -1,0 +1,31 @@
+# Dependencies
+**/node_modules/
+
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Builds and generated output
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Logs and local runtime files
+**/*.log
+**/dev.err
+**/dev.log
+**/.pnp/
+**/.pnp.*
+
+# Local temporary design exports
+tmp-ship-options/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.pem
+.vercel/

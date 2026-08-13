@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum ShipmentStatus {
+  pending
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  on_hold
+}
+
+enum ChatStatus {
+  bot
+  human
+  closed
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(user)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shipment {
+  id                      String         @id @default(cuid())
+  trackingId              String         @unique
+  senderName              String
+  senderAddress           String?
+  receiverName            String
+  receiverAddress         String?
+  weight                  Float?
+  packageType             String?
+  status                  ShipmentStatus @default(pending)
+  /// { city, lat, lng }
+  origin                  Json
+  destination             Json
+  currentLocation         Json
+  /// [{ status, location, description, timestamp }]
+  timeline                Json           @default("[]")
+  /// [{ amount, description, type, paid, createdAt }]
+  invoices                Json           @default("[]")
+  estimatedDelivery       DateTime?
+  holdReason              String?
+  delayReason             String?
+  delayDescription        String?
+  customsIntercepted      Boolean        @default(false)
+  borderClearanceEligible Boolean        @default(false)
+  customsNotes            String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  @@index([status])
+}
+
+model ChatSession {
+  id        String     @id @default(cuid())
+  sessionId String     @unique
+  userName  String     @default("Website Visitor")
+  status    ChatStatus @default(bot)
+  /// bot conversation state, e.g. { state: "greeting" }
+  context   Json       @default("{\"state\":\"greeting\"}")
+  messages  Message[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Message {
+  id           String      @id @default(cuid())
+  session      ChatSession @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+  sessionId    String
+  sender       String
+  message      String
+  /// [{ label, value }]
+  quickActions Json        @default("[]")
+  timestamp    DateTime    @default(now())
+
+  @@index([sessionId, timestamp])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  role      String
+  stars     Int      @default(5)
+  avatar    String   @default("")
+  quote     String
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// CMS: editable content blocks keyed by section slug (Phase 3 admin UI)
+model CmsBlock {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  content   Json
+  updatedAt DateTime @updatedAt
+}
