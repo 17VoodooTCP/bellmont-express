@@ -138,14 +138,13 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
         const started = performance.now();
         const animate = (now: number) => {
           if (dead) return;
-          const cycle = ((now - started) % (duration * 2)) / duration;
-          const raw = cycle <= 1 ? cycle : 2 - cycle;
+          const raw = Math.min(1, (now - started) / duration);
           const t = raw * raw * (3 - 2 * raw);
           const lat = c.lat + (d.lat - c.lat) * t;
           const lng = c.lng + (d.lng - c.lng) * t;
           currentMarker.setLatLng([lat, lng]);
           traveled?.setLatLngs(o ? [[o.lat, o.lng], [lat, lng]] : [[lat, lng]]);
-          animationFrame = window.requestAnimationFrame(animate);
+          if (raw < 1) animationFrame = window.requestAnimationFrame(animate);
         };
         animationFrame = window.requestAnimationFrame(animate);
       }

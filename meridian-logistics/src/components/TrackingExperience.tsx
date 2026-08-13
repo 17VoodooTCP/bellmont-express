@@ -41,11 +41,10 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
     const started = performance.now();
     let frame = 0;
     const animate = (now: number) => {
-      const cycle = ((now - started) % (duration * 2)) / duration;
-      const raw = cycle <= 1 ? cycle : 2 - cycle;
+      const raw = Math.min(1, (now - started) / duration);
       const eased = raw * raw * (3 - 2 * raw);
       setMotionProgress(progress + (1 - progress) * eased);
-      frame = window.requestAnimationFrame(animate);
+      if (raw < 1) frame = window.requestAnimationFrame(animate);
     };
     frame = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frame);
