@@ -11,10 +11,9 @@ import {
   getToken,
   listChatSessions,
 } from "@/lib/adminApi";
+import { ALLOWED_ATTACHMENT_MIME, encodeAttachment, MAX_ATTACHMENT_BYTES, parseAttachment } from "@/lib/chatAttachment";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const ATT = "§ATT§";
-
 const timeAgo = (iso: string) => {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
   if (s < 60) return `${s}s`;
@@ -24,9 +23,10 @@ const timeAgo = (iso: string) => {
 };
 
 function Body({ text }: { text: string }) {
-  if (text.startsWith(ATT)) {
+  const attachment = parseAttachment(text);
+  if (attachment) {
     try {
-      const att = JSON.parse(text.slice(ATT.length)) as { name: string; type: string; data: string };
+      const att = attachment;
       return att.type.startsWith("image/") ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={att.data} alt={att.name} className="max-h-44 rounded-lg" />
@@ -101,21 +101,20 @@ export default function AdminChatPage() {
 
   const attach = (file: File) => {
     if (!active) return;
-    if (file.size > 700 * 1024) {
-      alert("Attachments must be under 700 KB.");
+    if (!ALLOWED_ATTACHMENT_MIME.test(file.type)) {
+      alert("Attach a PNG, JPG, GIF, WebP, HEIC, or PDF file.");
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      alert("Attachments must be 5 MB or smaller.");
       return;
     }
     const reader = new FileReader();
+    reader.onerror = () => alert("The attachment could not be read. Try again.");
     reader.onload = () =>
       socketRef.current?.emit("adminMessage", {
         sessionId: active.sessionId,
-        message:
-          ATT +
-          JSON.stringify({
-            name: file.name,
-            type: file.type || "application/octet-stream",
-            data: reader.result,
-          }),
+        message: encodeAttachment({ name: file.name, type: file.type, size: file.size, data: String(reader.result) }),
       });
     reader.readAsDataURL(file);
   };
@@ -226,7 +225,7 @@ export default function AdminChatPage() {
                   <label
                     className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-line text-ink-mute transition-colors hover:border-ink hover:text-ink"
                     aria-label="Attach a file"
-                    title="Attach an image or document (under 700 KB)"
+                    title="Attach an image or PDF (up to 5 MB)"
                   >
                     <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                       <path d="M21 11.5 12.5 20a5.3 5.3 0 0 1-7.5-7.5L13.5 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a1.77 1.77 0 0 1-2.5-2.5L15 7.5" />

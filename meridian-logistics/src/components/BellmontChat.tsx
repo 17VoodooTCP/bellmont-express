@@ -2,9 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import {
+  ALLOWED_ATTACHMENT_MIME,
+  encodeAttachment,
+  MAX_ATTACHMENT_BYTES,
+  parseAttachment,
+} from "@/lib/chatAttachment";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-const ATT = "§ATT§"; // attachment marker embedded in the message string
 
 type QuickAction = { label: string; value: string };
 type Msg = {
@@ -13,16 +18,9 @@ type Msg = {
   timestamp: string | Date;
   quickActions?: QuickAction[];
 };
-type Attachment = { name: string; type: string; data: string };
-
-const parseAttachment = (m: string): Attachment | null => {
-  if (!m.startsWith(ATT)) return null;
-  try { return JSON.parse(m.slice(ATT.length)) as Attachment; } catch { return null; }
-};
-
 /* The interim backend is shared with the legacy product. Rebrand its copy. */
 const rebrand = (m: Msg): Msg =>
-  m.sender === "user" || m.message.startsWith(ATT)
+  m.sender === "user" || parseAttachment(m.message)
     ? m
     : { ...m, message: m.message.replace(/Velonex24|Velonex/g, "Bellmont Express").replace(/VLX-/g, "VLX-") };
 
@@ -76,6 +74,7 @@ export default function BellmontChat() {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [liveAgent, setLiveAgent] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const sessionRef = useRef<string>("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -115,12 +114,15 @@ export default function BellmontChat() {
     });
     s.on("newMessage", (m: Msg & { sessionId?: string }) => {
       if (m.sessionId && m.sessionId !== sessionRef.current) return;
+      if (m.sender === "admin" && typingWatchdog.current) {
+        clearTimeout(typingWatchdog.current);
+        typingWatchdog.current = null;
+        setTyping(false);
+      }
       setMsgs((p) => [...p, rebrand(m)]);
     });
-    s.on("botReply", (m: Msg) => { if (typingWatchdog.current) clearTimeout(typingWatchdog.current); setTyping(false); setMsgs((p) => [...p, rebrand(m)]); });
-    s.on("adminJoin", () =>
-      setMsgs((p) => [...p, { sender: "system", message: "A support agent joined the conversation.", timestamp: new Date() }])
-    );
+    s.on("botReply", (m: Msg & { status?: string }) => { if (typingWatchdog.current) clearTimeout(typingWatchdog.current); setTyping(false); if (m.status === "human") setLiveAgent(true); setMsgs((p) => [...p, rebrand(m)]); });
+    s.on("adminJoin", () => { setLiveAgent(true); setMsgs((p) => [...p, { sender: "system", message: "A support agent joined the conversation.", timestamp: new Date() }]); });
     s.on("sessionClosed", () => {
       setMsgs((p) => [...p, { sender: "system", message: "Conversation closed. Send a message to start a new one.", timestamp: new Date() }]);
       localStorage.removeItem("bellmont_chat_session");
@@ -136,8 +138,14 @@ export default function BellmontChat() {
 
   const typingWatchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const sendRaw = (text: string) => {
+  const sendRaw = (text: string, expectBotReply = true) => {
     if (!text || !socketRef.current) return;
+    if (!expectBotReply || liveAgent) {
+      setTyping(false);
+      if (typingWatchdog.current) { clearTimeout(typingWatchdog.current); typingWatchdog.current = null; }
+      socketRef.current.emit("userMessage", { sessionId: sessionRef.current, message: text });
+      return;
+    }
     setTyping(true);
     if (typingWatchdog.current) clearTimeout(typingWatchdog.current);
     typingWatchdog.current = setTimeout(() => {
@@ -159,13 +167,17 @@ export default function BellmontChat() {
   };
 
   const attach = (file: File) => {
-    if (file.size > 700 * 1024) {
-      setMsgs((p) => [...p, { sender: "system", message: "Attachments must be under 700 KB.", timestamp: new Date() }]);
+    if (!ALLOWED_ATTACHMENT_MIME.test(file.type)) {
+      setMsgs((p) => [...p, { sender: "system", message: "Attach a PNG, JPG, GIF, WebP, HEIC, or PDF file.", timestamp: new Date() }]);
+      return;
+    }
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setMsgs((p) => [...p, { sender: "system", message: "Attachments must be 5 MB or smaller.", timestamp: new Date() }]);
       return;
     }
     const reader = new FileReader();
-    reader.onload = () =>
-      sendRaw(ATT + JSON.stringify({ name: file.name, type: file.type || "application/octet-stream", data: reader.result }));
+    reader.onerror = () => setMsgs((p) => [...p, { sender: "system", message: "The attachment could not be read. Try again.", timestamp: new Date() }]);
+    reader.onload = () => sendRaw(encodeAttachment({ name: file.name, type: file.type, size: file.size, data: String(reader.result) }), false);
     reader.readAsDataURL(file);
   };
 
@@ -192,7 +204,7 @@ export default function BellmontChat() {
               <p className="text-sm font-semibold">Bellmont Express Support</p>
               <p className="flex items-center gap-1.5 text-[11px] text-ink-mute">
                 <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-green-500" : "bg-ink-mute"}`} />
-                {connected ? "Online now" : "Connecting…"}
+                {connected ? (liveAgent ? "Live agent" : "Online now") : "Connecting…"}
               </p>
             </div>
             <a href="mailto:support@bellmontexpress.com" className="notranslate text-[11px] font-medium text-sage hover:underline">
