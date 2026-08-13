@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   trackShipment,
   Shipment,
@@ -31,26 +31,10 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
     }
   }
 
-  const [motionProgress, setMotionProgress] = useState(progress);
-  useEffect(() => {
-    if (shipment.status === "delivered") {
-      setMotionProgress(1);
-      return;
-    }
-    const duration = 18000;
-    const started = performance.now();
-    let frame = 0;
-    const animate = (now: number) => {
-      const raw = Math.min(1, (now - started) / duration);
-      const eased = raw * raw * (3 - 2 * raw);
-      setMotionProgress(progress + (1 - progress) * eased);
-      if (raw < 1) frame = window.requestAnimationFrame(animate);
-    };
-    frame = window.requestAnimationFrame(animate);
-    return () => window.cancelAnimationFrame(frame);
-  }, [progress, shipment.status, shipment.trackingId, shipment.currentLocation?.city]);
-
-  const visualProgress = shipment.status === "delivered" ? 1 : motionProgress;
+  // The admin/API record is the source of truth. Never invent progress toward
+  // the destination on the client, or the vessel can appear ahead of the
+  // location and status the admin has set.
+  const visualProgress = shipment.status === "delivered" ? 1 : progress;
 
   // Quadratic arc across the panel; vehicle sits at `progress` along it
   const P0 = { x: 70, y: 250 };

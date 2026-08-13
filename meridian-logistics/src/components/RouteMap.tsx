@@ -41,7 +41,6 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
 
   useEffect(() => {
     let dead = false;
-    let animationFrame = 0;
     // Leaflet touches `window`, so it loads client-side only
     let cleanup: (() => void) | undefined;
 
@@ -117,42 +116,25 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
 
       if (o) L.marker([o.lat, o.lng], { icon: dot("#14170f") }).addTo(map).bindPopup(`<b>Origin</b><br>${escapeHtml(shipment.origin.city)}`);
       if (d) L.marker([d.lat, d.lng], { icon: dot("#61735a", true) }).addTo(map).bindPopup(`<b>Destination</b><br>${escapeHtml(shipment.destination.city)}`);
-      const currentMarker = c
-        ? L.marker([c.lat, c.lng], { icon: vessel, zIndexOffset: 500 })
-            .addTo(map)
-            .bindPopup(`<b>Live position</b><br>${escapeHtml(shipment.currentLocation?.city || "In transit")}`)
-        : null;
+      if (c) {
+        L.marker([c.lat, c.lng], { icon: vessel, zIndexOffset: 500 })
+          .addTo(map)
+          .bindPopup(`<b>Live position</b><br>${escapeHtml(shipment.currentLocation?.city || "In transit")}`);
+      }
 
       // Planned route, then the traveled leg highlighted to the live vessel.
       if (o && d) L.polyline([[o.lat, o.lng], [d.lat, d.lng]], {
         color: "#aeb8c0", weight: 3, dashArray: "5 11", opacity: 0.75,
       }).addTo(map);
-      const traveled = o && c ? L.polyline([[o.lat, o.lng], [c.lat, c.lng]], {
+      if (o && c) {
+        L.polyline([[o.lat, o.lng], [c.lat, c.lng]], {
           color: "#61735a", weight: 5, opacity: 0.95,
-        }).addTo(map) : null;
-
-      // Motion is deliberately client-side presentation: it gives the live
-      // tracker a visible pulse while the database remains the source of truth.
-      if (currentMarker && c && d && shipment.status !== "delivered") {
-        const duration = 18000;
-        const started = performance.now();
-        const animate = (now: number) => {
-          if (dead) return;
-          const raw = Math.min(1, (now - started) / duration);
-          const t = raw * raw * (3 - 2 * raw);
-          const lat = c.lat + (d.lat - c.lat) * t;
-          const lng = c.lng + (d.lng - c.lng) * t;
-          currentMarker.setLatLng([lat, lng]);
-          traveled?.setLatLngs(o ? [[o.lat, o.lng], [lat, lng]] : [[lat, lng]]);
-          if (raw < 1) animationFrame = window.requestAnimationFrame(animate);
-        };
-        animationFrame = window.requestAnimationFrame(animate);
+        }).addTo(map);
       }
 
       map.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lng])), { padding: [46, 46] });
       window.setTimeout(() => map.invalidateSize(), 80);
       cleanup = () => {
-        window.cancelAnimationFrame(animationFrame);
         map.remove();
       };
     })();
