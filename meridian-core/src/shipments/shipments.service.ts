@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Shipment, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -84,6 +84,78 @@ export class ShipmentsService {
         customsIntercepted: Boolean(data.customsIntercepted),
         borderClearanceEligible: Boolean(data.borderClearanceEligible),
         customsNotes: (data.customsNotes as string) ?? null,
+      },
+    });
+    return { shipment: toWire(shipment) };
+  }
+
+  async setStatus(
+    id: string,
+    data: { status: string; location?: string; description?: string },
+  ) {
+    const status = data.status as ShipmentStatus;
+    if (!Object.values(ShipmentStatus).includes(status)) {
+      throw new BadRequestException('Invalid shipment status');
+    }
+
+    const existing = await this.prisma.shipment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Shipment not found');
+
+    const location =
+      data.location ||
+      (existing.currentLocation as { city?: string })?.city ||
+      'Unknown';
+    const shipment = await this.prisma.shipment.update({
+      where: { id },
+      data: {
+        status,
+        timeline: this.appendTimeline(existing, {
+          status,
+          location,
+          description: data.description || STATUS_DESCRIPTIONS[status],
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    });
+    return { shipment: toWire(shipment) };
+  }
+
+  async hold(id: string, holdReason?: string) {
+    const existing = await this.prisma.shipment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Shipment not found');
+
+    const reason = holdReason || 'Placed on hold by admin';
+    const shipment = await this.prisma.shipment.update({
+      where: { id },
+      data: {
+        status: 'on_hold',
+        holdReason: reason,
+        timeline: this.appendTimeline(existing, {
+          status: 'on_hold',
+          location: (existing.currentLocation as { city?: string })?.city || 'Unknown',
+          description: `On hold: ${reason}`,
+          timestamp: new Date().toISOString(),
+        }),
+      },
+    });
+    return { shipment: toWire(shipment) };
+  }
+
+  async resume(id: string) {
+    const existing = await this.prisma.shipment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Shipment not found');
+
+    const shipment = await this.prisma.shipment.update({
+      where: { id },
+      data: {
+        status: 'in_transit',
+        holdReason: null,
+        timeline: this.appendTimeline(existing, {
+          status: 'in_transit',
+          location: (existing.currentLocation as { city?: string })?.city || 'Unknown',
+          description: 'Shipment resumed from hold',
+          timestamp: new Date().toISOString(),
+        }),
       },
     });
     return { shipment: toWire(shipment) };

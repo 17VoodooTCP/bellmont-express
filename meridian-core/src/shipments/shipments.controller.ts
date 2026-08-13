@@ -37,6 +37,27 @@ export class ShipmentsController {
     return this.shipments.create(body);
   }
 
+  @Put(':id/status')
+  @UseGuards(AdminGuard)
+  setStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string; location?: string; description?: string },
+  ) {
+    return this.shipments.setStatus(id, body);
+  }
+
+  @Put(':id/hold')
+  @UseGuards(AdminGuard)
+  hold(@Param('id') id: string, @Body() body: { holdReason?: string }) {
+    return this.shipments.hold(id, body.holdReason);
+  }
+
+  @Put(':id/resume')
+  @UseGuards(AdminGuard)
+  resume(@Param('id') id: string) {
+    return this.shipments.resume(id);
+  }
+
   @Put(':id')
   @UseGuards(AdminGuard)
   update(@Param('id') id: string, @Body() body: Record<string, unknown>) {
