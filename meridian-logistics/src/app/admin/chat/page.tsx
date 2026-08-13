@@ -204,8 +204,8 @@ export default function AdminChatPage() {
                       <div
                         className={`max-w-[76%] px-3.5 py-2 text-sm leading-snug ${
                           m.sender === "admin"
-                            ? "rounded-2xl rounded-br-[6px] bg-[#0A84FF] text-white"
-                            : "rounded-2xl rounded-bl-[6px] bg-[#E9E9EB] text-ink"
+                            ? "rounded-2xl rounded-br-[6px] bg-sage text-white"
+                            : "rounded-2xl rounded-bl-[6px] bg-sage-tint text-ink"
                         }`}
                       >
                         {m.sender !== "admin" && (

@@ -158,6 +158,9 @@ export default function AdminDashboard() {
           <h1 className="mt-2 text-3xl font-bold">Operations console</h1>
         </div>
         <div className="flex items-center gap-3">
+          <Link href="/admin/letters" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">
+            Letter builder
+          </Link>
           <Link href="/admin/chat" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">
             Live chat
           </Link>

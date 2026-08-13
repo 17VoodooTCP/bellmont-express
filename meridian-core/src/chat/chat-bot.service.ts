@@ -76,7 +76,7 @@ export class ChatBotService {
       };
     }
     return {
-      message: 'Welcome to Meridian Logistics. How can I help today?',
+      message: 'Welcome to Bellmont Express. How can I help today?',
       quickActions: MAIN_MENU,
       newState: 'awaiting_choice',
     };

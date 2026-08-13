@@ -39,8 +39,8 @@ function Bubble({ msg }: { msg: Msg }) {
       <div
         className={`max-w-[78%] px-3.5 py-2 text-[14px] leading-snug ${
           mine
-            ? "rounded-2xl rounded-br-[6px] bg-[#0A84FF] text-white"
-            : "rounded-2xl rounded-bl-[6px] bg-[#E9E9EB] text-[#0a0a0a]"
+            ? "rounded-2xl rounded-br-[6px] bg-sage text-white"
+            : "rounded-2xl rounded-bl-[6px] bg-sage-tint text-ink"
         }`}
       >
         {!mine && msg.sender === "admin" && (
@@ -54,7 +54,7 @@ function Bubble({ msg }: { msg: Msg }) {
             <a
               href={att.data}
               download={att.name}
-              className={`flex items-center gap-2 font-medium underline ${mine ? "text-white" : "text-[#0A84FF]"}`}
+              className={`flex items-center gap-2 font-medium underline ${mine ? "text-white" : "text-sage-deep"}`}
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden="true">
                 <path d="M8 2a3 3 0 0 0-3 3v8a4 4 0 0 0 8 0V6h-1.5v7a2.5 2.5 0 0 1-5 0V5a1.5 1.5 0 1 1 3 0v7a.75.75 0 0 1-1.5 0V6H6.5v6a2.25 2.25 0 0 0 4.5 0V5a3 3 0 0 0-3-3z" />
@@ -110,6 +110,9 @@ export default function BellmontChat() {
       s.emit("joinSession", { sessionId });
     });
     s.on("disconnect", () => setConnected(false));
+    s.on("sessionHistory", ({ messages }: { messages?: Msg[] }) => {
+      if (messages?.length) setMsgs(messages.map(rebrand));
+    });
     s.on("newMessage", (m: Msg & { sessionId?: string }) => {
       if (m.sessionId && m.sessionId !== sessionRef.current) return;
       setMsgs((p) => [...p, rebrand(m)]);
@@ -207,7 +210,7 @@ export default function BellmontChat() {
                       <button
                         key={q.value}
                         onClick={() => sendRaw(q.value)}
-                        className="rounded-full border border-[#0A84FF] px-3 py-1 text-xs font-medium text-[#0A84FF] hover:bg-[#0A84FF] hover:text-white"
+                className="rounded-full border border-sage px-3 py-1 text-xs font-medium text-sage hover:bg-sage hover:text-white"
                       >
                         {q.label}
                       </button>
@@ -218,9 +221,9 @@ export default function BellmontChat() {
             ))}
             {typing && (
               <div className="flex justify-start">
-                <div className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-[#E9E9EB] px-4 py-3">
+                <div className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-sage-tint px-4 py-3">
                   {[0, 1, 2].map((d) => (
-                    <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-[#8a8a8a]" style={{ animationDelay: `${d * 0.15}s` }} />
+                    <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-sage-soft" style={{ animationDelay: `${d * 0.15}s` }} />
                   ))}
                 </div>
               </div>
@@ -257,7 +260,7 @@ export default function BellmontChat() {
               type="submit"
               disabled={!input.trim()}
               aria-label="Send"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0A84FF] text-white disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage text-white disabled:opacity-40"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M3 11l18-8-8 18-2.5-7.5z" /></svg>
             </button>

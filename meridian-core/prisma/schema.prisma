@@ -114,3 +114,59 @@ model CmsBlock {
   content   Json
   updatedAt DateTime @updatedAt
 }
+
+model LetterDraft {
+  id               String   @id @default(cuid())
+  title            String
+  recipientName    String
+  recipientAddress String   @default("")
+  subject          String   @default("")
+  body             String   @default("")
+  signerName       String   @default("")
+  signerTitle      String   @default("")
+  department       String   @default("Operations")
+  classification   String   @default("Private & Confidential")
+  reference        String
+  savedBy          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+model Executive {
+  id         String   @id @default(cuid())
+  name       String
+  title      String
+  department String
+  prefix     String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([isActive])
+}
+
+model IssuedLetter {
+  id             String   @id @default(cuid())
+  reference      String   @unique
+  verificationId String
+  recipientName  String
+  subject        String   @default("")
+  department     String
+  classification String
+  signerName     String
+  signerTitle    String   @default("")
+  authorizationId String  @default("")
+  issuedOn       String
+  status         String   @default("ACTIVE")
+  statusReason   String?
+  fingerprint    String   @default("")
+  generatedAt    DateTime @default(now())
+  lastVerifiedAt DateTime?
+  verifyCount    Int      @default(0)
+  issuedBy       String?
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
