@@ -1,3 +1,6 @@
+# Production Blueprint for the Bellmont Express monorepo.
+# Neon is the production database. MongoDB Atlas remains an external,
+# one-time migration source and is not provisioned by Render.
 services:
   - type: web
     name: meridian-core

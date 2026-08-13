@@ -1,89 +1,75 @@
-# Deploy runbook — new MongoDB, new GitHub, new Vercel, new Render
+# Bellmont Express deployment runbook
 
-Two services: the Next.js frontend (`meridian-logistics`) on Vercel, and the
-Express + Mongo API (`meridian-api`) on Render. `meridian-core` is kept as
-reference only — it is Prisma/Postgres and is not deployed.
+The production path is:
 
-Each service needs the other's URL, so deploy in this order and do one pass back.
+- Neon PostgreSQL is the primary database.
+- `meridian-core` is the production NestJS and Prisma API on Render.
+- MongoDB Atlas is retained as the existing data source for the one-time migration.
+- `meridian-logistics` is the Next.js frontend on Vercel.
 
-## 0. Before anything
+## Database setup
 
-Never commit `.env`. All three `.gitignore` files already exclude it — verified.
-Real secrets go in the Render and Vercel dashboards, not in the repo.
+Create a Neon project and copy both connection strings:
 
-## 1. Two GitHub repos
+- `DATABASE_URL`: pooled connection string for the application.
+- `DIRECT_URL`: direct connection string for Prisma migrations.
 
-`meridian-logistics` and `meridian-api` are separate projects with separate
-lockfiles, so they need separate repos. Neither has a `.git` yet.
+Keep the MongoDB Atlas connection available for the migration only. The migration script expects the variable name `MONGO_URI`:
 
-```bash
-cd "C:\Users\ASUS\OneDrive\Desktop\evil-catsite\meridian-api"
-git init && git add . && git commit -m "Initial commit"
+```powershell
+$env:MONGO_URI = "mongodb+srv://..."
+$env:DATABASE_URL = "postgresql://..."
+$env:DIRECT_URL = "postgresql://..."
+npx ts-node scripts/migrate-from-mongo.ts
 ```
 
-Confirm `.env` is absent from `git status` before the first push.
+Run that command from `meridian-core` after installing its dependencies.
 
-## 2. Render — deploy the API
+## Render Blueprint
 
-New → Blueprint → pick the `meridian-api` repo (`render.yaml` selects the free
-plan). Set these in the dashboard:
+The repository root contains `render.yaml`. It deploys `meridian-core` from the `meridian-core` subdirectory using Render's monorepo `rootDir` setting.
+
+Create a new Render Blueprint from this repository. Provide these values when prompted:
 
 | Variable | Value |
 | --- | --- |
-| `MONGODB_URI` | your new Atlas connection string |
-| `JWT_SECRET` | generated automatically by `render.yaml` |
-| `CLIENT_URL` | leave blank for now — filled in at step 4 |
-| `NODE_ENV` | `production` (preset) |
-| `PORT` | `5000` (preset) |
+| `DATABASE_URL` | Neon pooled PostgreSQL URL |
+| `DIRECT_URL` | Neon direct PostgreSQL URL |
+| `JWT_SECRET` | generated automatically by Render |
+| `CLIENT_URL` | Vercel project URL, added after the frontend is deployed |
 
-In Atlas, allow Render's outbound IPs (or `0.0.0.0/0` on the free tier) or the
-connection times out.
+`NODE_ENV` is set to `production`. Render provides `PORT` automatically.
 
-Verify: `https://<service>.onrender.com/api/health` returns `{"status":"ok"}`.
-The free instance sleeps after 15 min idle; first request takes 30–60 s.
+The service starts with Prisma migrations and then runs `node dist/main.js`. Verify:
 
-## 3. Vercel — deploy the frontend
-
-Add New Project → import the `meridian-logistics` repo → Next.js autodetected.
-
-Set `NEXT_PUBLIC_API_URL` to the Render URL from step 2 **before** the first
-build. `NEXT_PUBLIC_*` values are baked into the bundle at build time, so
-changing this later requires a redeploy, not just a restart.
-
-## 4. Close the loop
-
-Back in Render, set `CLIENT_URL` to your Vercel URL — comma-separated if you
-have a custom domain too:
-
-```
-https://your-project.vercel.app,https://yourdomain.com,https://www.yourdomain.com
+```text
+https://<service>.onrender.com/api/health
 ```
 
-CORS is now driven entirely by this variable (`server.js`), so no code change is
-needed for a new domain. An origin not in this list is rejected.
+## Vercel frontend
 
-## 5. Seed the admin user
+Import the `meridian-logistics` project from this repository. If Vercel asks for the project root, set it to `meridian-logistics`.
 
-`seed.js` creates `admin@velonex24.com` with the password `admin123`. **Change
-both before the site is publicly reachable** — it is a live admin login on a
-public URL. Edit `seed.js`, or use `scripts/admin-update.js` to set real
-credentials, then run against the new database.
+Set this environment variable before the first production build:
 
-## 6. Verify end to end
+```env
+NEXT_PUBLIC_API_URL=https://<service>.onrender.com
+```
 
-- `/tracking` — look up a shipment (needs seeded data)
-- `/admin/login` — sign in, confirm the dashboard loads
-- `/admin/chat` — send a message; confirms the Socket.IO transport, which is the
-  piece most likely to break on CORS
+`NEXT_PUBLIC_API_URL` is compiled into the frontend, so changes require a new Vercel deployment.
 
-## Still branded "Meridian" / "Velonex24"
+After Vercel provides its URL, add the same URL to Render as `CLIENT_URL`. Add a custom domain as another comma-separated origin if needed.
 
-Deliberately deferred until the stack is confirmed working. When rebranding:
+## Secrets
 
-| File | What |
-| --- | --- |
-| `meridian-api/socket/chatHandler.js:216` | user-visible chat sign-off |
-| `meridian-api/server.js:90` | boot log |
-| `meridian-api/seed.js`, `scripts/admin-update.js` | admin email + login URL |
-| `meridian-logistics/src/components/Logo.tsx` | wordmark |
-| `meridian-logistics/src/**` | `Meridian` copy, accent `#FF4D00` in `globals.css` |
+Never commit `.env` files. Generate a local secret with:
+
+```powershell
+node -e "console.log(require('node:crypto').randomBytes(64).toString('hex'))"
+```
+
+Change the seeded administrator credentials before making the admin routes public.
+
+## Legacy Express API
+
+`meridian-api` is the earlier Express and MongoDB implementation. Its nested `render.yaml` remains available for a temporary rollback deployment, but it is not part of the root production Blueprint.
