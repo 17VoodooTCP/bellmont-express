@@ -12,7 +12,24 @@ import { openInvoice } from "@/lib/invoice";
 
 /* ── Animated route: origin → destination arc with a vessel in motion ── */
 function RouteVisual({ shipment }: { shipment: Shipment }) {
-  const progress = STATUS_PROGRESS[shipment.status] ?? 0.5;
+  const point = (p?: { lat: number; lng: number }) =>
+    p && Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
+    !(Math.abs(p.lat) < 0.01 && Math.abs(p.lng) < 0.01) ? p : null;
+  const a = point(shipment.origin);
+  const b = point(shipment.destination);
+  const c = point(shipment.currentLocation);
+  let progress = STATUS_PROGRESS[shipment.status] ?? 0.5;
+  if (a && b && c) {
+    const cos = Math.cos((((a.lat + b.lat) / 2) * Math.PI) / 180);
+    const ax = a.lng * cos, ay = a.lat;
+    const bx = b.lng * cos, by = b.lat;
+    const cx = c.lng * cos, cy = c.lat;
+    const dx = bx - ax, dy = by - ay;
+    const length = dx * dx + dy * dy;
+    if (length > 0) {
+      progress = Math.max(0.02, Math.min(1, ((cx - ax) * dx + (cy - ay) * dy) / length));
+    }
+  }
 
   // Quadratic arc across the panel; vehicle sits at `progress` along it
   const P0 = { x: 70, y: 250 };
@@ -65,22 +82,26 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
         {shipment.destination.city}
       </text>
 
-      {/* moving vessel */}
+      {/* moving cargo vessel */}
       <g transform={`translate(${pos.x} ${pos.y}) rotate(${angle})`}>
-        <circle r="17" fill="var(--sage)" opacity="0.12">
-          <animate attributeName="r" values="14;22;14" dur="2.4s" repeatCount="indefinite" />
+        <circle r="22" fill="var(--sage)" opacity="0.11">
+          <animate attributeName="r" values="17;27;17" dur="2.4s" repeatCount="indefinite" />
         </circle>
-        <g transform="translate(-13 -8)">
-          {/* compact cargo vessel glyph */}
-          <path d="M1 11 L25 11 L21.5 16 L4.5 16 Z" fill="var(--sage)" />
-          <rect x="5" y="6" width="5" height="4" rx="0.5" fill="#0a0a0a" />
-          <rect x="11" y="4" width="5" height="6" rx="0.5" fill="#0a0a0a" />
-          <rect x="17" y="6" width="4" height="4" rx="0.5" fill="#0a0a0a" />
+        <g transform="translate(-24 -14)">
+          <path d="M3 19h42l-7 8H10l-7-8Z" fill="#14170f" />
+          <path d="M7 19h34l-4 5H11l-4-5Z" fill="var(--sage)" />
+          <rect x="12" y="10" width="7" height="9" rx="1" fill="#14170f" />
+          <rect x="20" y="8" width="7" height="11" rx="1" fill="var(--sage)" />
+          <rect x="28" y="10" width="7" height="9" rx="1" fill="#14170f" />
+          <path d="M36 5h6v14h-6z" fill="#14170f" />
+          <path d="M39 2v4M36.5 4h5" stroke="var(--sage)" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M9 30h27" stroke="var(--sage)" strokeWidth="2" strokeLinecap="round" opacity=".75" />
         </g>
       </g>
 
       {/* current-location caption under the vessel */}
-      <text x={pos.x} y={pos.y - 26} textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--sage)">
+      <rect x={pos.x - 66} y={pos.y - 48} width="132" height="22" rx="11" fill="#fbfbf8" stroke="#e3e8df" />
+      <text x={pos.x} y={pos.y - 33} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--sage)">
         {shipment.currentLocation?.city || STATUS_LABEL[shipment.status]}
       </text>
     </svg>
