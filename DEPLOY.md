@@ -40,7 +40,7 @@ Create a new Render Blueprint from this repository. Provide these values when pr
 
 `NODE_ENV` is set to `production`. Render provides `PORT` automatically.
 
-The service starts with Prisma migrations and then runs `node dist/main.js`. Verify:
+The service installs development tooling during the build because the Nest CLI is used to compile TypeScript. It then starts with Prisma migrations and runs `node dist/main.js`. Verify:
 
 ```text
 https://<service>.onrender.com/api/health
