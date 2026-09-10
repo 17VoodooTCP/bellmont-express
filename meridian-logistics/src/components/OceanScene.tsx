@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 /* Real container-ship photograph, pre-compressed to WebP at 2000px. Served as
    a static file so the hero remains crisp without metered image transforms. */
-const SHIP_IMG = "/media/ship-real.webp";
+const SHIP_IMG = "/media/bellmont-port-hero.png";
 const PORT_IMG = "/media/port-real.webp";
 const TRUCK_IMG =
   "https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?w=900&q=70&auto=format&fit=crop";
@@ -131,12 +131,12 @@ export default function OceanScene() {
           <div className="relative mx-auto h-full w-[min(1160px,94vw)] overflow-hidden rounded-t-3xl">
             <Image
               src={SHIP_IMG}
-              alt="Bellmont Express container vessel under way at sea"
+              alt="Bellmont Express vessel approaching a lit container terminal at blue hour"
               fill
               priority
               unoptimized
               sizes="94vw"
-              className="ship-photo object-cover object-[center_58%] will-change-transform"
+              className="ship-photo object-cover object-[center_62%] will-change-transform"
             />
             <span className="absolute bottom-4 left-5 flex items-center gap-2 rounded-full bg-white/85 px-4 py-1.5 text-xs font-semibold backdrop-blur">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sage" />

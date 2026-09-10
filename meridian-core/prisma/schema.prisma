@@ -73,6 +73,7 @@ model ChatSession {
   id        String     @id @default(cuid())
   sessionId String     @unique
   userName  String     @default("Website Visitor")
+  agentName String?
   status    ChatStatus @default(bot)
   /// bot conversation state, e.g. { state: "greeting" }
   context   Json       @default("{\"state\":\"greeting\"}")

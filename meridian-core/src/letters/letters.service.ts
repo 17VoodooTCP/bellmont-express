@@ -107,4 +107,37 @@ export class LettersService {
       },
     }).then((letter) => ({ letter }));
   }
+
+  async verify(reference: string) {
+    const letter = await this.prisma.issuedLetter.findUnique({
+      where: { reference: String(reference).trim().toUpperCase() },
+    });
+    if (!letter) throw new NotFoundException('No registered Bellmont Express correspondence matches this reference.');
+
+    const checkedAt = new Date();
+    await this.prisma.issuedLetter.update({
+      where: { id: letter.id },
+      data: { lastVerifiedAt: checkedAt, verifyCount: { increment: 1 } },
+    });
+    return {
+      valid: true,
+      checkedAt,
+      letter: {
+        reference: letter.reference,
+        verificationId: letter.verificationId,
+        recipientName: letter.recipientName,
+        subject: letter.subject,
+        department: letter.department,
+        classification: letter.classification,
+        signerName: letter.signerName,
+        signerTitle: letter.signerTitle,
+        authorizationId: letter.authorizationId,
+        issuedOn: letter.issuedOn,
+        status: letter.status,
+        statusReason: letter.statusReason,
+        fingerprint: letter.fingerprint,
+        generatedAt: letter.generatedAt,
+      },
+    };
+  }
 }

@@ -187,7 +187,7 @@ export default function BellmontChat() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close support chat" : "Open support chat"}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-white shadow-xl transition-transform hover:scale-105"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange text-white shadow-[0_12px_30px_rgba(216,134,33,.35)] transition-transform hover:scale-105"
       >
         {open ? (
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
@@ -198,18 +198,17 @@ export default function BellmontChat() {
 
       {/* panel */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-50 flex h-[540px] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl">
-          <header className="flex items-center justify-between border-b border-line px-4 py-3">
+        <div className="fixed bottom-24 right-5 z-50 flex h-[560px] w-[min(390px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[1.35rem] border border-line bg-white shadow-2xl">
+          <header className="bg-orange px-5 py-6 text-white">
             <div>
-              <p className="text-sm font-semibold">Bellmont Express Support</p>
-              <p className="flex items-center gap-1.5 text-[11px] text-ink-mute">
-                <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-green-500" : "bg-ink-mute"}`} />
-                {connected ? (liveAgent ? "Live agent" : "Online now") : "Connecting…"}
+              <p className="text-center text-sm font-medium">Send a message</p>
+              <p className="mt-7 text-center text-2xl font-bold">How can we help?</p>
+              <p className="mt-1 text-center text-sm text-white/80">We usually respond within an hour on weekdays</p>
+              <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-white/80">
+                <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-white" : "bg-white/40"}`} />
+                {connected ? (liveAgent ? "Live agent connected" : "Online now") : "Connecting…"}
               </p>
             </div>
-            <a href="mailto:support@bellmontexpress.com" className="notranslate text-[11px] font-medium text-sage hover:underline">
-              support@bellmontexpress.com
-            </a>
           </header>
 
           <div className="flex-1 space-y-2.5 overflow-y-auto bg-white px-3.5 py-4">
@@ -243,7 +242,7 @@ export default function BellmontChat() {
             <div ref={endRef} />
           </div>
 
-          <form onSubmit={send} className="flex items-center gap-2 border-t border-line px-3 py-2.5">
+          <form onSubmit={send} className="flex items-center gap-2 border-t border-line bg-[#fbfbf8] px-3 py-3">
             <input
               ref={fileRef}
               type="file"
@@ -272,7 +271,7 @@ export default function BellmontChat() {
               type="submit"
               disabled={!input.trim()}
               aria-label="Send"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sage text-white disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange text-white disabled:opacity-40"
             >
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M3 11l18-8-8 18-2.5-7.5z" /></svg>
             </button>

@@ -1,8 +1,10 @@
-import OceanScene from "@/components/OceanScene";
 import Reveal from "@/components/Reveal";
+import WelcomeHero from "@/components/WelcomeHero";
 import ReviewsSection from "@/components/ReviewsSection";
 import RotatingCards from "@/components/RotatingCards";
 import PlatformShowcase from "@/components/PlatformShowcase";
+import FeatureRail from "@/components/FeatureRail";
+import { TrustMarquee, PostFeatureSections } from "@/components/HomeV2Sections";
 
 const SERVICES = [
   {
@@ -97,27 +99,17 @@ const PEOPLE = [
     caption: "The long way around",
     title: "Distance, made legible",
     body: "The ocean is only the first chapter. A live record keeps every next handoff in view until the journey becomes yours again.",
-    image: "/media/ship-real.webp",
+    image: "/media/cargo-inspector-realistic.png",
   },
 ];
 
 export default function Home() {
   return (
-    <>
-      <OceanScene />
-
-      <section className="manifesto-rail border-y border-line bg-paper" aria-label="Bellmont Express point of view">
-        <div className="mx-auto grid max-w-6xl gap-6 px-5 py-8 md:grid-cols-[0.8fr_1.5fr_auto] md:items-center md:gap-10 md:py-10">
-          <p className="section-kicker">Field note / 001</p>
-          <p className="max-w-2xl text-lg leading-snug text-ink-soft md:text-xl">
-            We do not move boxes from A to B. We choreograph the distance between
-            two important moments.
-          </p>
-          <span className="hidden text-right text-[10px] font-semibold uppercase tracking-[0.25em] text-ink-mute md:block">
-            04 modes<br />01 live record
-          </span>
-        </div>
-      </section>
+    <div className="home-v2">
+      <WelcomeHero />
+      <TrustMarquee />
+      <FeatureRail />
+      <PostFeatureSections />
 
       <section id="services" className="service-field relative overflow-hidden bg-ink text-paper">
         <div className="service-field__glow pointer-events-none absolute -right-40 top-20 h-96 w-96 rounded-full" aria-hidden="true" />
@@ -196,6 +188,6 @@ export default function Home() {
       <ReviewsSection />
 
       <PlatformShowcase />
-    </>
+    </div>
   );
 }

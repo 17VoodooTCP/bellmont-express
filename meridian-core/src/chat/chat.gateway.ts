@@ -52,7 +52,8 @@ export class ChatGateway {
   }
 
   @SubscribeMessage('adminConnect')
-  async adminConnect(@ConnectedSocket() socket: Socket) {
+  async adminConnect(@ConnectedSocket() socket: Socket, @MessageBody() body?: { agentName?: string }) {
+    socket.data.agentName = String(body?.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await socket.join('admin_room');
   }
 
@@ -63,7 +64,7 @@ export class ChatGateway {
     const { sessionId, message } = body;
     const session = await this.prisma.chatSession.upsert({
       where: { sessionId },
-      update: {},
+      update: { updatedAt: new Date() },
       create: { sessionId },
     });
 
@@ -126,25 +127,33 @@ export class ChatGateway {
   @SubscribeMessage('adminJoin')
   async adminJoin(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() body: { sessionId: string },
+    @MessageBody() body: { sessionId: string; agentName?: string },
   ) {
     await socket.join(body.sessionId);
+    const agentName = String(body.agentName ?? socket.data.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await this.prisma.chatSession.update({
       where: { sessionId: body.sessionId },
-      data: { status: 'human' },
+      data: { status: 'human', agentName },
     });
-    this.server.to(body.sessionId).emit('adminJoin', { sessionId: body.sessionId });
-    this.server.to('admin_room').emit('sessionUpdate', { sessionId: body.sessionId, status: 'human' });
+    const joined = await this.saveMessage(body.sessionId, 'system', `${agentName} joined the conversation.`);
+    const systemWire = { sessionId: body.sessionId, sender: 'system', message: joined.message, timestamp: joined.timestamp };
+    this.server.to(body.sessionId).emit('adminJoin', { sessionId: body.sessionId, agentName });
+    this.server.to(body.sessionId).emit('newMessage', systemWire);
+    this.server.to('admin_room').emit('newMessage', systemWire);
+    this.server.to('admin_room').emit('sessionUpdate', { sessionId: body.sessionId, status: 'human', agentName });
   }
 
   @SubscribeMessage('adminMessage')
   async adminMessage(
-    @MessageBody() body: { sessionId: string; message: string },
+    @MessageBody() body: { sessionId: string; message: string; agentName?: string },
   ) {
+    const agentName = String(body.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
+    await this.prisma.chatSession.update({ where: { sessionId: body.sessionId }, data: { agentName } });
     const saved = await this.saveMessage(body.sessionId, 'admin', body.message);
     const wire = {
       sessionId: body.sessionId,
       sender: 'admin',
+      agentName,
       message: body.message,
       timestamp: saved.timestamp,
     };
@@ -153,13 +162,18 @@ export class ChatGateway {
   }
 
   @SubscribeMessage('closeSession')
-  async closeSession(@MessageBody() body: { sessionId: string }) {
+  async closeSession(@ConnectedSocket() socket: Socket, @MessageBody() body: { sessionId: string; agentName?: string }) {
+    const agentName = String(body.agentName ?? socket.data.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await this.prisma.chatSession.update({
       where: { sessionId: body.sessionId },
       data: { status: 'closed' },
     });
+    const closed = await this.saveMessage(body.sessionId, 'system', `${agentName} closed this conversation.`);
+    const systemWire = { sessionId: body.sessionId, sender: 'system', message: closed.message, timestamp: closed.timestamp };
     this.server.to(body.sessionId).emit('sessionClosed', { sessionId: body.sessionId });
-    this.server.to('admin_room').emit('sessionUpdate', { sessionId: body.sessionId, status: 'closed' });
+    this.server.to(body.sessionId).emit('newMessage', systemWire);
+    this.server.to('admin_room').emit('newMessage', systemWire);
+    this.server.to('admin_room').emit('sessionUpdate', { sessionId: body.sessionId, status: 'closed', agentName });
   }
 
   @SubscribeMessage('typing')
