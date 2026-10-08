@@ -41,86 +41,20 @@ function drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: nu
   ctx.fill();
 }
 
-function drawPackage(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = "#49629d";
-  ctx.fillStyle = "#f7f9fd";
-  ctx.lineWidth = 1.8 * scale;
-  ctx.beginPath();
-  ctx.moveTo(-10 * scale, -7 * scale);
-  ctx.lineTo(0, -12 * scale);
-  ctx.lineTo(11 * scale, -7 * scale);
-  ctx.lineTo(0, -2 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = "#dbe5f4";
-  ctx.beginPath();
-  ctx.moveTo(-10 * scale, -7 * scale);
-  ctx.lineTo(0, -2 * scale);
-  ctx.lineTo(0, 11 * scale);
-  ctx.lineTo(-10 * scale, 5 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = "#eef2fa";
-  ctx.beginPath();
-  ctx.moveTo(0, -2 * scale);
-  ctx.lineTo(11 * scale, -7 * scale);
-  ctx.lineTo(11 * scale, 5 * scale);
-  ctx.lineTo(0, 11 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-}
+/* The van, cargo plane and parcel are isometric line drawings in the same
+   style as the live-chat background (public/hero/*.svg). Each is drawn
+   standing on its route point, at this height in CSS pixels. */
+const SPRITES = {
+  van: { src: "/hero/van.svg", height: 58 },
+  plane: { src: "/hero/plane.svg", height: 64 },
+  parcel: { src: "/hero/parcel.svg", height: 42 },
+} as const;
+type SpriteName = keyof typeof SPRITES;
 
-function drawTruck(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = "#49629d";
-  ctx.fillStyle = "#fca837";
-  ctx.lineWidth = 2 * scale;
-  ctx.beginPath();
-  ctx.roundRect(-15 * scale, -8 * scale, 18 * scale, 10 * scale, 2 * scale);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = "#eef2fa";
-  ctx.beginPath();
-  ctx.moveTo(3 * scale, -6 * scale);
-  ctx.lineTo(10 * scale, -6 * scale);
-  ctx.lineTo(15 * scale, 2 * scale);
-  ctx.lineTo(3 * scale, 2 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = "#1e2950";
-  ctx.beginPath(); ctx.arc(-9 * scale, 4 * scale, 3 * scale, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(9 * scale, 4 * scale, 3 * scale, 0, Math.PI * 2); ctx.fill();
-  ctx.restore();
-}
-
-function drawAirCargo(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(-0.18);
-  ctx.strokeStyle = "#49629d";
-  ctx.fillStyle = "#fca837";
-  ctx.lineWidth = 2 * scale;
-  ctx.beginPath();
-  ctx.moveTo(14 * scale, 0);
-  ctx.lineTo(-4 * scale, -3 * scale);
-  ctx.lineTo(-13 * scale, -10 * scale);
-  ctx.lineTo(-16 * scale, -8 * scale);
-  ctx.lineTo(-7 * scale, -1 * scale);
-  ctx.lineTo(-16 * scale, 7 * scale);
-  ctx.lineTo(-13 * scale, 9 * scale);
-  ctx.lineTo(-4 * scale, 3 * scale);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+function drawSprite(ctx: CanvasRenderingContext2D, img: HTMLImageElement | undefined, x: number, y: number, height: number) {
+  if (!img?.complete || !img.naturalWidth) return;
+  const width = height * (img.naturalWidth / img.naturalHeight);
+  ctx.drawImage(img, x - width / 2, y - height, width, height);
 }
 
 function routePoint(route: (typeof routes)[number], t: number): Point {
@@ -146,6 +80,12 @@ export default function DeliveryRouteCanvas() {
     let height = 0;
     let dpr = 1;
     let scrollProgress = 0;
+    const sprites: Partial<Record<SpriteName, HTMLImageElement>> = {};
+    (Object.keys(SPRITES) as SpriteName[]).forEach((name) => {
+      const img = new Image();
+      img.src = SPRITES[name].src;
+      sprites[name] = img;
+    });
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -208,9 +148,12 @@ export default function DeliveryRouteCanvas() {
         context.arc(x, y, 4, 0, Math.PI * 2);
         context.fill();
         context.globalAlpha = 1;
-        if (route.phase === 0) drawTruck(context, x, y - 8, 0.72);
-        if (route.phase === 0.34) drawAirCargo(context, x, y - 8, 0.7);
-        if (route.phase === 0.67) drawPackage(context, x, y - 8, 0.72);
+        // smaller on phones so the drawings never crowd the headline
+        const size = width < 640 ? 0.72 : 1;
+        if (route.phase === 0) drawSprite(context, sprites.van, x, y - 2, SPRITES.van.height * size);
+        // the plane floats a little above its route and bobs gently
+        if (route.phase === 0.34) drawSprite(context, sprites.plane, x, y - 6 + Math.sin(motion * 1.8) * 2.5, SPRITES.plane.height * size);
+        if (route.phase === 0.67) drawSprite(context, sprites.parcel, x, y - 2, SPRITES.parcel.height * size);
       });
 
       animationFrame = requestAnimationFrame(draw);
