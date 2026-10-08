@@ -16,7 +16,7 @@ const VALUES = [
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-32">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">About Bellmont Express</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">About Bellmont Express</p>
       <h1 className="mt-4 max-w-3xl text-4xl font-bold md:text-6xl">
         Freight built the modern world. We&rsquo;re rebuilding freight.
       </h1>

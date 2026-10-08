@@ -8,6 +8,8 @@ export type Review = {
   stars: number;
   avatar: string; // URL or data URL from an uploaded file
   quote: string;
+  /* Short result chips shown above the quote, e.g. "-25% freight spend". */
+  metrics?: string[];
 };
 
 export const DEFAULT_REVIEWS: Review[] = [
@@ -17,6 +19,7 @@ export const DEFAULT_REVIEWS: Review[] = [
     role: "Fleet Manager, Northline Retail",
     stars: 5,
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=70&auto=format&fit=crop",
+    metrics: ["-18% freight spend", "400 containers / quarter"],
     quote: "We moved 400 containers through Bellmont Express last quarter. The live map is the first one my team actually trusts. Every handoff shows up in minutes.",
   },
   {
@@ -25,6 +28,7 @@ export const DEFAULT_REVIEWS: Review[] = [
     role: "Founder, Okafor Imports",
     stars: 5,
     avatar: "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?w=200&q=70&auto=format&fit=crop",
+    metrics: ["Customs cleared on arrival", "11 years importing"],
     quote: "The delivery agent called ahead, arrived smiling, and my customs paperwork was already cleared. That's a first in eleven years of importing.",
   },
   {
@@ -33,6 +37,7 @@ export const DEFAULT_REVIEWS: Review[] = [
     role: "COO, Hale Medical Supply",
     stars: 4,
     avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&q=70&auto=format&fit=crop",
+    metrics: ["41 hrs door to door", "1 late pickup all year"],
     quote: "Time-critical air freight, door to door in 41 hours. One late pickup all year, and their support line answered in under a minute.",
   },
 ];

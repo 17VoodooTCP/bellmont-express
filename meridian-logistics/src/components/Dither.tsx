@@ -1,266 +1,298 @@
 "use client";
 
-/* eslint-disable react/no-unknown-property */
-import { forwardRef, useEffect, useRef, type ComponentType, type Ref } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { EffectComposer, wrapEffect } from "@react-three/postprocessing";
-import { Effect } from "postprocessing";
-import * as THREE from "three";
+/* Dithered wave backdrop — 2D canvas.
+
+   This replaces a WebGL version built on three.js + @react-three/fiber +
+   postprocessing, which cost ~1.1 MB of JavaScript (304 KB over the wire) to
+   draw a texture that ends up at 30% opacity, multiply-blended, masked top and
+   bottom, and partly covered by another canvas. The maths here is a port of
+   that shader: fbm Perlin field -> mix(background, wave) -> 8x8 Bayer ordered
+   dither -> posterise to `colorNum` levels.
+
+   It renders into a small offscreen buffer (one buffer pixel per dither cell)
+   and scales up with smoothing off, which is what `pixelSize` did in the
+   shader — so the output is blocky by construction and costs very little.
+
+   Props match the previous component, so this is a drop-in. */
+
+import { useEffect, useRef } from "react";
 import "./Dither.css";
 
-const waveVertexShader = `
-precision highp float;
-varying vec2 vUv;
-void main() {
-  vUv = uv;
-  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
-}
-`;
-
-const waveFragmentShader = `
-precision highp float;
-uniform vec2 resolution;
-uniform float time;
-uniform float waveSpeed;
-uniform float waveFrequency;
-uniform float waveAmplitude;
-uniform vec3 waveColor;
-uniform vec3 backgroundColor;
-uniform vec2 mousePos;
-uniform int enableMouseInteraction;
-uniform float mouseRadius;
-
-vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
-vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-vec2 fade(vec2 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
-
-float cnoise(vec2 P) {
-  vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
-  vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
-  Pi = mod289(Pi);
-  vec4 ix = Pi.xzxz;
-  vec4 iy = Pi.yyww;
-  vec4 fx = Pf.xzxz;
-  vec4 fy = Pf.yyww;
-  vec4 i = permute(permute(ix) + iy);
-  vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0;
-  vec4 gy = abs(gx) - 0.5;
-  vec4 tx = floor(gx + 0.5);
-  gx -= tx;
-  vec2 g00 = vec2(gx.x, gy.x);
-  vec2 g10 = vec2(gx.y, gy.y);
-  vec2 g01 = vec2(gx.z, gy.z);
-  vec2 g11 = vec2(gx.w, gy.w);
-  vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
-  g00 *= norm.x; g01 *= norm.y; g10 *= norm.z; g11 *= norm.w;
-  float n00 = dot(g00, vec2(fx.x, fy.x));
-  float n10 = dot(g10, vec2(fx.y, fy.y));
-  float n01 = dot(g01, vec2(fx.z, fy.z));
-  float n11 = dot(g11, vec2(fx.w, fy.w));
-  vec2 fadeXY = fade(Pf.xy);
-  vec2 nX = mix(vec2(n00, n01), vec2(n10, n11), fadeXY.x);
-  return 2.3 * mix(nX.x, nX.y, fadeXY.y);
-}
-
-float fbm(vec2 p) {
-  float value = 0.0;
-  float amplitude = 1.0;
-  float frequency = waveFrequency;
-  for (int i = 0; i < 4; i++) {
-    value += amplitude * abs(cnoise(p));
-    p *= frequency;
-    amplitude *= waveAmplitude;
-  }
-  return value;
-}
-
-float pattern(vec2 p) {
-  vec2 shifted = p - time * waveSpeed;
-  return fbm(p + fbm(shifted));
-}
-
-void main() {
-  vec2 uv = gl_FragCoord.xy / resolution.xy - 0.5;
-  uv.x *= resolution.x / resolution.y;
-  float value = pattern(uv);
-  if (enableMouseInteraction == 1) {
-    vec2 mouseNDC = (mousePos / resolution - 0.5) * vec2(1.0, -1.0);
-    mouseNDC.x *= resolution.x / resolution.y;
-    float distanceToMouse = length(uv - mouseNDC);
-    value -= 0.5 * (1.0 - smoothstep(0.0, mouseRadius, distanceToMouse));
-  }
-  vec3 color = mix(backgroundColor, waveColor, clamp(value, 0.0, 1.0));
-  gl_FragColor = vec4(color, 1.0);
-}
-`;
-
-const ditherFragmentShader = `
-precision highp float;
-uniform float colorNum;
-uniform float pixelSize;
-const float bayer[64] = float[64](
-  0.0/64.0,48.0/64.0,12.0/64.0,60.0/64.0,3.0/64.0,51.0/64.0,15.0/64.0,63.0/64.0,
-  32.0/64.0,16.0/64.0,44.0/64.0,28.0/64.0,35.0/64.0,19.0/64.0,47.0/64.0,31.0/64.0,
-  8.0/64.0,56.0/64.0,4.0/64.0,52.0/64.0,11.0/64.0,59.0/64.0,7.0/64.0,55.0/64.0,
-  40.0/64.0,24.0/64.0,36.0/64.0,20.0/64.0,43.0/64.0,27.0/64.0,39.0/64.0,23.0/64.0,
-  2.0/64.0,50.0/64.0,14.0/64.0,62.0/64.0,1.0/64.0,49.0/64.0,13.0/64.0,61.0/64.0,
-  34.0/64.0,18.0/64.0,46.0/64.0,30.0/64.0,33.0/64.0,17.0/64.0,45.0/64.0,29.0/64.0,
-  10.0/64.0,58.0/64.0,6.0/64.0,54.0/64.0,9.0/64.0,57.0/64.0,5.0/64.0,53.0/64.0,
-  42.0/64.0,26.0/64.0,38.0/64.0,22.0/64.0,41.0/64.0,25.0/64.0,37.0/64.0,21.0/64.0
-);
-
-vec3 dither(vec2 uv, vec3 color) {
-  vec2 scaled = floor(uv * resolution / pixelSize);
-  int x = int(mod(scaled.x, 8.0));
-  int y = int(mod(scaled.y, 8.0));
-  float threshold = bayer[y * 8 + x] - 0.25;
-  float stepSize = 1.0 / (colorNum - 1.0);
-  color += threshold * stepSize;
-  float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-  float bias = mix(0.2, 0.0, smoothstep(0.45, 0.8, luminance));
-  color = clamp(color - bias, 0.0, 1.0);
-  return floor(color * (colorNum - 1.0) + 0.5) / (colorNum - 1.0);
-}
-
-void mainImage(in vec4 inputColor, in vec2 uv, out vec4 outputColor) {
-  vec2 pixel = pixelSize / resolution;
-  vec2 pixelUV = pixel * floor(uv / pixel);
-  vec4 color = texture2D(inputBuffer, pixelUV);
-  color.rgb = dither(uv, color.rgb);
-  outputColor = color;
-}
-`;
-
-class RetroEffectImpl extends Effect {
-  private effectUniforms: Map<string, THREE.Uniform<number>>;
-
-  constructor() {
-    const uniforms = new Map<string, THREE.Uniform<number>>([
-      ["colorNum", new THREE.Uniform(4)],
-      ["pixelSize", new THREE.Uniform(2)],
-    ]);
-    super("RetroEffect", ditherFragmentShader, { uniforms });
-    this.effectUniforms = uniforms;
-  }
-
-  set colorNum(value: number) { this.effectUniforms.get("colorNum")!.value = value; }
-  set pixelSize(value: number) { this.effectUniforms.get("pixelSize")!.value = value; }
-}
-
-const WrappedRetro = wrapEffect(RetroEffectImpl) as unknown as ComponentType<{
-  colorNum: number;
-  pixelSize: number;
-  ref?: Ref<RetroEffectImpl>;
-}>;
-const RetroEffect = forwardRef<RetroEffectImpl, { colorNum: number; pixelSize: number }>((props, ref) => (
-  <WrappedRetro ref={ref} colorNum={props.colorNum} pixelSize={props.pixelSize} />
-));
-RetroEffect.displayName = "RetroEffect";
-
-type DitherProps = {
+export type DitherProps = {
+  waveColor?: [number, number, number];
+  backgroundColor?: [number, number, number];
   waveSpeed?: number;
   waveFrequency?: number;
   waveAmplitude?: number;
-  waveColor?: [number, number, number];
-  backgroundColor?: [number, number, number];
   colorNum?: number;
   pixelSize?: number;
   disableAnimation?: boolean;
+  /* Accepted for API compatibility. The WebGL version only applied these when
+     enableMouseInteraction was set, which this hero never did. */
   enableMouseInteraction?: boolean;
   mouseRadius?: number;
 };
 
-function DitheredWaves({
-  waveSpeed, waveFrequency, waveAmplitude, waveColor, backgroundColor,
-  colorNum, pixelSize, disableAnimation, enableMouseInteraction, mouseRadius,
-}: Required<DitherProps>) {
-  const mouse = useRef(new THREE.Vector2());
-  const { viewport, size, gl } = useThree();
-  const uniforms = useRef({
-    time: new THREE.Uniform(0),
-    resolution: new THREE.Uniform(new THREE.Vector2()),
-    waveSpeed: new THREE.Uniform(waveSpeed),
-    waveFrequency: new THREE.Uniform(waveFrequency),
-    waveAmplitude: new THREE.Uniform(waveAmplitude),
-    waveColor: new THREE.Uniform(new THREE.Color(...waveColor)),
-    backgroundColor: new THREE.Uniform(new THREE.Color(...backgroundColor)),
-    mousePos: new THREE.Uniform(new THREE.Vector2()),
-    enableMouseInteraction: new THREE.Uniform(enableMouseInteraction ? 1 : 0),
-    mouseRadius: new THREE.Uniform(mouseRadius),
-  }).current;
-  const previousWaveColor = useRef([...waveColor]);
-  const previousBackgroundColor = useRef([...backgroundColor]);
+/* The same 8x8 Bayer matrix the shader used, as 0..1 thresholds. */
+const BAYER = [
+  0, 48, 12, 60, 3, 51, 15, 63,
+  32, 16, 44, 28, 35, 19, 47, 31,
+  8, 56, 4, 52, 11, 59, 7, 55,
+  40, 24, 36, 20, 43, 27, 39, 23,
+  2, 50, 14, 62, 1, 49, 13, 61,
+  34, 18, 46, 30, 33, 17, 45, 29,
+  10, 58, 6, 54, 9, 57, 5, 53,
+  42, 26, 38, 22, 41, 25, 37, 21,
+].map((v) => v / 64);
 
-  useEffect(() => {
-    const dpr = gl.getPixelRatio();
-    uniforms.resolution.value.set(Math.floor(size.width * dpr), Math.floor(size.height * dpr));
-  }, [gl, size, uniforms]);
+/* Classic 2D Perlin over a fixed permutation, so the field is identical on
+   every load rather than reshuffling per mount. */
+const PERM = new Uint8Array(512);
+(() => {
+  const p = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) p[i] = i;
+  let seed = 1337;
+  for (let i = 255; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    const t = p[i];
+    p[i] = p[j];
+    p[j] = t;
+  }
+  for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+})();
 
-  useFrame(({ clock }) => {
-    if (!disableAnimation) uniforms.time.value = clock.getElapsedTime();
-    uniforms.waveSpeed.value = waveSpeed;
-    uniforms.waveFrequency.value = waveFrequency;
-    uniforms.waveAmplitude.value = waveAmplitude;
-    uniforms.enableMouseInteraction.value = enableMouseInteraction ? 1 : 0;
-    uniforms.mouseRadius.value = mouseRadius;
-    if (previousWaveColor.current.some((value, index) => value !== waveColor[index])) {
-      uniforms.waveColor.value.set(...waveColor);
-      previousWaveColor.current = [...waveColor];
-    }
-    if (previousBackgroundColor.current.some((value, index) => value !== backgroundColor[index])) {
-      uniforms.backgroundColor.value.set(...backgroundColor);
-      previousBackgroundColor.current = [...backgroundColor];
-    }
-    if (enableMouseInteraction) uniforms.mousePos.value.copy(mouse.current);
-  });
+const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
 
-  const handlePointerMove = (event: { nativeEvent: { clientX: number; clientY: number } }) => {
-    if (!enableMouseInteraction) return;
-    const rect = gl.domElement.getBoundingClientRect();
-    const dpr = gl.getPixelRatio();
-    mouse.current.set((event.nativeEvent.clientX - rect.left) * dpr, (event.nativeEvent.clientY - rect.top) * dpr);
-  };
+/* The (+-1, +-1) gradients are length sqrt(2); the shader's cnoise normalises
+   its gradients, so scale the dot product to unit length or the field runs
+   roughly 40% hot and saturates the colour mix. */
+const INV_SQRT2 = 1 / Math.SQRT2;
 
-  return <>
-    <mesh scale={[viewport.width, viewport.height, 1]}>
-      <planeGeometry args={[1, 1]} />
-      <shaderMaterial vertexShader={waveVertexShader} fragmentShader={waveFragmentShader} uniforms={uniforms} />
-    </mesh>
-    <EffectComposer>
-      <RetroEffect colorNum={colorNum} pixelSize={pixelSize} />
-    </EffectComposer>
-    <mesh onPointerMove={handlePointerMove} position={[0, 0, 0.01]} scale={[viewport.width, viewport.height, 1]} visible={false}>
-      <planeGeometry args={[1, 1]} />
-      <meshBasicMaterial transparent opacity={0} />
-    </mesh>
-  </>;
+function grad(hash: number, x: number, y: number) {
+  switch (hash & 3) {
+    case 0: return (x + y) * INV_SQRT2;
+    case 1: return (-x + y) * INV_SQRT2;
+    case 2: return (x - y) * INV_SQRT2;
+    default: return (-x - y) * INV_SQRT2;
+  }
+}
+
+function perlin(x: number, y: number) {
+  const fx = Math.floor(x);
+  const fy = Math.floor(y);
+  const xi = fx & 255;
+  const yi = fy & 255;
+  const xf = x - fx;
+  const yf = y - fy;
+  const u = fade(xf);
+  const v = fade(yf);
+  const aa = PERM[PERM[xi] + yi];
+  const ab = PERM[PERM[xi] + yi + 1];
+  const ba = PERM[PERM[xi + 1] + yi];
+  const bb = PERM[PERM[xi + 1] + yi + 1];
+  const g1 = grad(aa, xf, yf);
+  const g2 = grad(ba, xf - 1, yf);
+  const g3 = grad(ab, xf, yf - 1);
+  const g4 = grad(bb, xf - 1, yf - 1);
+  const x1 = g1 + u * (g2 - g1);
+  const x2 = g3 + u * (g4 - g3);
+  return x1 + v * (x2 - x1);
+}
+
+/* Calibration. This is a classic table-based Perlin; the shader used
+   Gustavson's cnoise, whose gradient set yields a flatter distribution. Left
+   at 1.0 the field reads as visible cloud rather than the near-invisible haze
+   the original produced at 30% opacity, so the mix factor is scaled to match.
+   Tuned by comparing against the WebGL build at the same viewport. */
+const FIELD_STRENGTH = 0.42;
+
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+function smoothstep(edge0: number, edge1: number, x: number) {
+  const t = clamp01((x - edge0) / (edge1 - edge0));
+  return t * t * (3 - 2 * t);
 }
 
 export default function Dither({
-  waveSpeed = 0.05,
-  waveFrequency = 3,
-  waveAmplitude = 0.3,
-  waveColor = [0.5, 0.5, 0.5],
-  backgroundColor = [0, 0, 0],
-  colorNum = 4,
+  waveColor = [0.28, 0.39, 0.64],
+  backgroundColor = [0.9, 0.94, 0.98],
+  waveSpeed = 0.16,
+  waveFrequency = 2.6,
+  waveAmplitude = 0.32,
+  colorNum = 6,
   pixelSize = 2,
   disableAnimation = false,
-  enableMouseInteraction = true,
-  mouseRadius = 1,
 }: DitherProps) {
-  return <Canvas className="dither-container" camera={{ position: [0, 0, 6] }} dpr={1} gl={{ antialias: true, preserveDrawingBuffer: true }}>
-    <DitheredWaves
-      waveSpeed={waveSpeed}
-      waveFrequency={waveFrequency}
-      waveAmplitude={waveAmplitude}
-      waveColor={waveColor}
-      backgroundColor={backgroundColor}
-      colorNum={colorNum}
-      pixelSize={pixelSize}
-      disableAnimation={disableAnimation}
-      enableMouseInteraction={enableMouseInteraction}
-      mouseRadius={mouseRadius}
-    />
-  </Canvas>;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const parent = canvas?.parentElement;
+    if (!canvas || !parent) return;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    const levels = Math.max(2, colorNum);
+    const stepSize = 1 / (levels - 1);
+    const [wr, wg, wb] = waveColor;
+    const [br, bg, bb] = backgroundColor;
+
+    /* A soft, slow backdrop, so it draws at a low internal resolution and
+       scales up. Capping the buffer keeps the per-frame cost flat on a 4K
+       display instead of growing with the viewport. */
+    const MAX_BUFFER_W = 720;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const still = reduced || disableAnimation;
+
+    let bw = 0, bh = 0, aspect = 1;
+    let image: ImageData | null = null;
+    let buffer: Uint8ClampedArray | null = null;
+
+    const measure = () => {
+      const rect = parent.getBoundingClientRect();
+      const cssW = Math.max(1, Math.round(rect.width));
+      const cssH = Math.max(1, Math.round(rect.height));
+      aspect = cssW / cssH;
+      bw = Math.max(1, Math.min(MAX_BUFFER_W, Math.round(cssW / Math.max(1, pixelSize))));
+      bh = Math.max(1, Math.round(bw / aspect));
+      canvas.width = bw;
+      canvas.height = bh;
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+      ctx.imageSmoothingEnabled = false;
+      image = ctx.createImageData(bw, bh);
+      buffer = image.data;
+    };
+
+    /* fbm and pattern, ported from the shader. */
+    const fbm = (x: number, y: number) => {
+      let value = 0;
+      let amplitude = 1;
+      let px = x;
+      let py = y;
+      for (let i = 0; i < 4; i++) {
+        value += amplitude * Math.abs(2.3 * perlin(px, py));
+        px *= waveFrequency;
+        py *= waveFrequency;
+        amplitude *= waveAmplitude;
+      }
+      return value;
+    };
+
+    const render = (time: number) => {
+      if (!buffer || !image) return;
+      const shift = time * waveSpeed;
+      const maxLevel = levels - 1;
+      let i = 0;
+      for (let y = 0; y < bh; y++) {
+        /* GL sampled bottom-up; flipping keeps the drift going the same way. */
+        const vy = (bh - 1 - y) / bh - 0.5;
+        const row = (y & 7) * 8;
+        for (let x = 0; x < bw; x++) {
+          const ux = (x / bw - 0.5) * aspect;
+          const warp = fbm(ux - shift, vy - shift);
+          const value = clamp01(fbm(ux + warp, vy + warp) * FIELD_STRENGTH);
+
+          let r = br + (wr - br) * value;
+          let g = bg + (wg - bg) * value;
+          let b = bb + (wb - bb) * value;
+
+          const threshold = (BAYER[row + (x & 7)] - 0.25) * stepSize;
+          r += threshold;
+          g += threshold;
+          b += threshold;
+
+          const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          const bias = 0.2 * (1 - smoothstep(0.45, 0.8, lum));
+          r = clamp01(r - bias);
+          g = clamp01(g - bias);
+          b = clamp01(b - bias);
+
+          buffer[i++] = (Math.floor(r * maxLevel + 0.5) / maxLevel) * 255;
+          buffer[i++] = (Math.floor(g * maxLevel + 0.5) / maxLevel) * 255;
+          buffer[i++] = (Math.floor(b * maxLevel + 0.5) / maxLevel) * 255;
+          buffer[i++] = 255;
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+    };
+
+    let frame = 0;
+    let last = 0;
+    let onScreen = true;
+    /* A full redraw costs ~19ms at this buffer size, so it runs at 15fps and
+       only while the hero is actually in view. The field drifts slowly enough
+       that neither is visible. */
+    const FRAME_MS = 1000 / 15;
+
+    const loop = (now: number) => {
+      if (now - last >= FRAME_MS) {
+        last = now;
+        render(now / 1000);
+      }
+      frame = requestAnimationFrame(loop);
+    };
+
+    const start = () => {
+      if (frame || still) return;
+      last = 0;
+      frame = requestAnimationFrame(loop);
+    };
+    const stop = () => {
+      if (!frame) return;
+      cancelAnimationFrame(frame);
+      frame = 0;
+    };
+
+    measure();
+    render(0);
+
+    const resizeObserver = new ResizeObserver(() => {
+      measure();
+      render(still ? 0 : performance.now() / 1000);
+    });
+    resizeObserver.observe(parent);
+
+    /* Stop burning frames once the hero scrolls away. */
+    const visibility = new IntersectionObserver(
+      (entries) => {
+        onScreen = entries[0]?.isIntersecting ?? true;
+        if (onScreen && !document.hidden) start();
+        else stop();
+      },
+      { threshold: 0 }
+    );
+    visibility.observe(parent);
+
+    const onVisibilityChange = () => {
+      if (document.hidden) stop();
+      else if (onScreen) start();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      stop();
+      resizeObserver.disconnect();
+      visibility.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+    /* The colour props are array literals at the call site, so a new reference
+       arrives on every parent render. Keying on the values keeps the canvas
+       from being torn down and rebuilt each time. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    waveColor.join(), backgroundColor.join(), waveSpeed, waveFrequency,
+    waveAmplitude, colorNum, pixelSize, disableAnimation,
+  ]);
+
+  return (
+    <div className="dither-container">
+      <canvas
+        ref={canvasRef}
+        aria-hidden="true"
+        style={{ display: "block", imageRendering: "pixelated", pointerEvents: "none" }}
+      />
+    </div>
+  );
 }

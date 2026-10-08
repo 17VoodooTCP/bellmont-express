@@ -16,14 +16,14 @@ export default function LetterDocument({ data }: { data: LetterDocumentData }) {
   return (
     <article id="bellmont-letter" className="letter-sheet relative mx-auto min-h-[11in] w-full max-w-[8.5in] overflow-hidden bg-white px-[0.75in] py-[0.7in] text-[#273027] shadow-xl print:m-0 print:max-w-none print:shadow-none" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
       <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-[2.2in] opacity-[0.055]" aria-hidden="true">
-        <svg viewBox="0 0 120 120" width="260" height="260"><path d="M27 20h34c21 0 34 9 34 24 0 9-5 16-13 20 10 4 15 11 15 20 0 16-14 26-38 26H27V20Zm17 15v22h16c11 0 18-4 18-11s-7-11-18-11H44Zm0 35v25h18c12 0 19-5 19-13s-7-12-19-12H44Z" fill="var(--sage)"/><path d="M27 20h17v74H27z" fill="var(--ink)"/><path d="M19 96c12-8 24-10 34-6 11 4 22 4 32-4 7-5 14-7 22-5" fill="none" stroke="var(--ink)" strokeWidth="4.5" strokeLinecap="round"/></svg>
+        <svg viewBox="0 0 120 120" width="260" height="260"><path d="M27 20h34c21 0 34 9 34 24 0 9-5 16-13 20 10 4 15 11 15 20 0 16-14 26-38 26H27V20Zm17 15v22h16c11 0 18-4 18-11s-7-11-18-11H44Zm0 35v25h18c12 0 19-5 19-13s-7-12-19-12H44Z" fill="var(--brand)"/><path d="M27 20h17v74H27z" fill="var(--ink)"/><path d="M19 96c12-8 24-10 34-6 11 4 22 4 32-4 7-5 14-7 22-5" fill="none" stroke="var(--ink)" strokeWidth="4.5" strokeLinecap="round"/></svg>
       </div>
 
       <header className="relative flex items-start justify-between gap-8 border-b-2 border-ink pb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <LogoMark size={38} />
-            <span className="text-[22px] font-bold tracking-[-0.04em]">Bellmont <em className="font-normal not-italic text-sage">Express</em></span>
+            <span className="text-[22px] font-bold tracking-[-0.04em]">Bellmont <em className="font-normal not-italic text-brand">Express</em></span>
           </div>
           <address className="mt-4 not-italic text-[9pt] leading-relaxed text-[#697267]">
             <strong className="text-ink">Bellmont Express</strong><br />1180 Gateway Plaza<br />San Francisco, CA 94105<br />support@bellmontexpress.com

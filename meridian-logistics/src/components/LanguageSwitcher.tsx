@@ -83,14 +83,16 @@ export default function LanguageSwitcher() {
         className="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm font-medium hover:border-ink transition-colors"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* SVG flags stay sharp at any pixel density; the old 20px PNGs were
+            being stretched on high-resolution screens and looked soft. */}
         <img
-          src={`https://flagcdn.com/w20/${current.country}.png`}
+          src={`https://flagcdn.com/${current.country}.svg`}
           alt=""
-          width={20}
-          height={14}
-          className="rounded-[2px]"
+          width={22}
+          height={16}
+          className="lang-flag"
         />
-        <span className="notranslate">{current.label}</span>
+        <span className="lang-name notranslate hidden sm:inline">{current.label}</span>
       </button>
 
       {open && (
@@ -104,19 +106,20 @@ export default function LanguageSwitcher() {
                 role="option"
                 aria-selected={lang.code === current.code}
                 onClick={() => pick(lang)}
-                className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-sage-tint ${
-                  lang.code === current.code ? "font-semibold text-sage" : ""
+                className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-brand-tint ${
+                  lang.code === current.code ? "font-semibold text-brand" : ""
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`https://flagcdn.com/w20/${lang.country}.png`}
+                  src={`https://flagcdn.com/${lang.country}.svg`}
                   alt=""
-                  width={20}
-                  height={14}
-                  className="rounded-[2px]"
+                  width={22}
+                  height={16}
+                  loading="lazy"
+                  className="lang-flag"
                 />
-                <span className="notranslate">{lang.label}</span>
+                <span className="lang-name notranslate">{lang.label}</span>
               </button>
             </li>
           ))}

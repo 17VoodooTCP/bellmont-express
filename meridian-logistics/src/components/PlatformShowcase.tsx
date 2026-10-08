@@ -93,7 +93,7 @@ export default function PlatformShowcase() {
       <div className="platform-showcase__rings" aria-hidden="true" />
       <div className="relative mx-auto grid max-w-6xl gap-12 px-5 py-24 md:py-32 lg:grid-cols-[1fr_0.9fr] lg:items-center">
         <div className="platform-showcase__copy">
-          <p className="section-kicker text-sage-soft">The Bellmont interface</p>
+          <p className="section-kicker text-brand-soft">The Bellmont interface</p>
           <h2 id="platform-title" className="mt-5 max-w-xl text-4xl font-bold leading-[0.96] text-paper md:text-6xl">
             Freight, with a point of view.
           </h2>
@@ -116,7 +116,7 @@ export default function PlatformShowcase() {
             ))}
           </div>
           <div className="mt-10 max-w-md border-t border-white/15 pt-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sage-soft">{step.label} / 0{active + 1}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-soft">{step.label} / 0{active + 1}</p>
             <h3 className="mt-3 text-2xl font-semibold text-paper">{step.title}</h3>
             <p className="mt-3 text-sm leading-relaxed text-paper/60">{step.copy}</p>
           </div>

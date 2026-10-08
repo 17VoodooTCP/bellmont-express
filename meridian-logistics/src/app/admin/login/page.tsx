@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
           <p className="text-xs text-ink-mute">Operations console sign-in</p>
         </div>
         {error && (
-          <p role="alert" className="mt-5 rounded-xl bg-sage-tint px-4 py-3 text-xs text-sage-deep">
+          <p role="alert" className="mt-5 rounded-xl bg-brand-tint px-4 py-3 text-xs text-brand-deep">
             {error}
           </p>
         )}
@@ -67,7 +67,7 @@ export default function AdminLoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-6 w-full rounded-full bg-ink py-3.5 text-sm font-semibold text-white transition-colors hover:bg-sage disabled:opacity-50"
+          className="mt-6 w-full rounded-full bg-ink py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand disabled:opacity-50"
         >
           {busy ? "Signing in… (service may take a minute to wake)" : "Sign in"}
         </button>

@@ -70,15 +70,15 @@ export default function AdminLettersPage() {
     finally { setBusy(""); }
   };
 
-  const input = "mt-1 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm outline-none focus:border-sage";
+  const input = "mt-1 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm outline-none focus:border-brand";
   return (
     <div className="mx-auto max-w-[1500px] px-5 pb-28 pt-10">
       <style>{`@media print { body * { visibility: hidden !important; } #bellmont-letter, #bellmont-letter * { visibility: visible !important; } #bellmont-letter { position: absolute !important; left: 0; top: 0; width: 100% !important; } @page { size: Letter; margin: 0; } }`}</style>
       <header className="flex flex-wrap items-center justify-between gap-4 print:hidden">
-        <div className="flex items-center gap-3"><LogoMark size={42} /><div><p className="text-xs font-bold uppercase tracking-[0.28em] text-sage">Bellmont Express Admin</p><h1 className="mt-1 text-3xl font-bold">Letter builder</h1></div></div>
+        <div className="flex items-center gap-3"><LogoMark size={42} /><div><p className="text-xs font-bold uppercase tracking-[0.28em] text-brand">Bellmont Express Admin</p><h1 className="mt-1 text-3xl font-bold">Letter builder</h1></div></div>
         <Link href="/admin" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">Back to console</Link>
       </header>
-      {notice && <p className="mt-6 rounded-xl bg-sage-tint px-4 py-3 text-sm text-sage-deep print:hidden">{notice}</p>}
+      {notice && <p className="mt-6 rounded-xl bg-brand-tint px-4 py-3 text-sm text-brand-deep print:hidden">{notice}</p>}
       <div className="mt-8 grid items-start gap-7 lg:grid-cols-[380px_minmax(0,1fr)]">
         <section className="space-y-4 print:hidden lg:sticky lg:top-6">
           <div className="rounded-2xl border border-line bg-white p-5">
@@ -91,13 +91,13 @@ export default function AdminLettersPage() {
           <div className="rounded-2xl border border-line bg-white p-5">
             {executives.length > 0 && <label className="block text-[11px] font-bold uppercase tracking-widest text-ink-mute">Saved signatory<select className={input} defaultValue="" onChange={(e) => { const ex = executives.find((x) => x.id === e.target.value); if (ex) setForm((f) => ({ ...f, signerName: ex.name, signerTitle: ex.title, department: ex.department })); }}><option value="" disabled>Choose a signatory</option>{executives.map((ex) => <option key={ex.id} value={ex.id}>{ex.name} - {ex.title}</option>)}</select></label>}
             <label className="mt-4 block text-[11px] font-bold uppercase tracking-widest text-ink-mute">Signed by<input className={input} value={form.signerName} onChange={(e) => set("signerName")(e.target.value)} placeholder="Jordan Ellis" /></label>
-            <button onClick={() => void addSavedExecutive()} disabled={busy === "executive"} className="mt-2 text-xs font-semibold text-sage hover:underline">{busy === "executive" ? "Saving..." : "Save as reusable signatory"}</button>
+            <button onClick={() => void addSavedExecutive()} disabled={busy === "executive"} className="mt-2 text-xs font-semibold text-brand hover:underline">{busy === "executive" ? "Saving..." : "Save as reusable signatory"}</button>
             <label className="mt-4 block text-[11px] font-bold uppercase tracking-widest text-ink-mute">Title<input className={input} value={form.signerTitle} onChange={(e) => set("signerTitle")(e.target.value)} placeholder="Client Services Manager" /></label>
             <label className="mt-4 block text-[11px] font-bold uppercase tracking-widest text-ink-mute">Classification<select className={input} value={form.classification} onChange={(e) => set("classification")(e.target.value)}><option>Private & Confidential</option><option>Confidential</option><option>Internal</option><option>Client Services</option></select></label>
             <label className="mt-4 block text-[11px] font-bold uppercase tracking-widest text-ink-mute">Issuing department<input className={input} value={form.department} onChange={(e) => set("department")(e.target.value)} /></label>
           </div>
-          <div className="flex flex-wrap gap-2"><button onClick={() => void save()} disabled={busy === "save"} className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-ink">{busy === "save" ? "Saving..." : draftId ? "Update draft" : "Save draft"}</button><button onClick={reset} className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-ink">Clear</button><button onClick={() => void print()} disabled={!ready || Boolean(busy)} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-sage disabled:opacity-40">{busy === "print" ? "Registering..." : "Print / PDF"}</button></div>
-          {drafts.length > 0 && <div className="rounded-2xl border border-line bg-white p-5"><p className="text-xs font-bold uppercase tracking-widest text-ink-mute">Saved drafts</p><ul className="mt-3 space-y-2">{drafts.map((draft) => <li key={draft.id} className="flex items-center gap-2"><button onClick={() => openDraft(draft)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold hover:text-sage">{draft.title}</button><button onClick={() => void deleteLetterDraft(draft.id).then(load)} className="text-xs text-red-600 hover:underline">Delete</button></li>)}</ul></div>}
+          <div className="flex flex-wrap gap-2"><button onClick={() => void save()} disabled={busy === "save"} className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-ink">{busy === "save" ? "Saving..." : draftId ? "Update draft" : "Save draft"}</button><button onClick={reset} className="rounded-full border border-line px-4 py-2.5 text-sm font-semibold hover:border-ink">Clear</button><button onClick={() => void print()} disabled={!ready || Boolean(busy)} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand disabled:opacity-40">{busy === "print" ? "Registering..." : "Print / PDF"}</button></div>
+          {drafts.length > 0 && <div className="rounded-2xl border border-line bg-white p-5"><p className="text-xs font-bold uppercase tracking-widest text-ink-mute">Saved drafts</p><ul className="mt-3 space-y-2">{drafts.map((draft) => <li key={draft.id} className="flex items-center gap-2"><button onClick={() => openDraft(draft)} className="min-w-0 flex-1 truncate text-left text-sm font-semibold hover:text-brand">{draft.title}</button><button onClick={() => void deleteLetterDraft(draft.id).then(load)} className="text-xs text-red-600 hover:underline">Delete</button></li>)}</ul></div>}
         </section>
         <section className="rounded-3xl bg-[#e9ede6] p-3 md:p-7"><LetterDocument data={data} /></section>
       </div>

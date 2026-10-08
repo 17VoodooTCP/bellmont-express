@@ -125,7 +125,7 @@ export default function AdminChatPage() {
     <div className="mx-auto max-w-6xl px-5 pb-16 pt-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">Bellmont Express Admin</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Bellmont Express Admin</p>
           <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold">
             Live chat
             <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-green-500" : "bg-line"}`} aria-label={connected ? "Connected" : "Disconnected"} />
@@ -160,7 +160,7 @@ export default function AdminChatPage() {
                     ? "bg-green-100 text-green-700"
                     : s.status === "closed"
                       ? "bg-line text-ink-mute"
-                      : "bg-sage-tint text-sage-deep"
+                      : "bg-brand-tint text-brand-deep"
                 }`}
               >
                 {s.status === "human" ? "LIVE AGENT" : s.status === "closed" ? "CLOSED" : "BOT"}
@@ -182,7 +182,7 @@ export default function AdminChatPage() {
                 </div>
                 <div className="flex gap-2">
                   {current.status === "bot" && (
-                    <button onClick={takeOver} className="rounded-full bg-sage px-4 py-2 text-xs font-bold text-white hover:bg-sage-deep">
+                    <button onClick={takeOver} className="rounded-full bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-deep">
                       Take over
                     </button>
                   )}
@@ -203,12 +203,12 @@ export default function AdminChatPage() {
                       <div
                         className={`max-w-[76%] px-3.5 py-2 text-sm leading-snug ${
                           m.sender === "admin"
-                            ? "rounded-2xl rounded-br-[6px] bg-sage text-white"
-                            : "rounded-2xl rounded-bl-[6px] bg-sage-tint text-ink"
+                            ? "rounded-2xl rounded-br-[6px] bg-brand text-white"
+                            : "rounded-2xl rounded-bl-[6px] bg-brand-tint text-ink"
                         }`}
                       >
                         {m.sender !== "admin" && (
-                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage">
+                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
                             {m.sender === "bot" ? "Bot" : "Customer"}
                           </p>
                         )}
@@ -248,7 +248,7 @@ export default function AdminChatPage() {
                     aria-label="Reply"
                     className="flex-1 rounded-full border border-line px-4 py-2.5 text-sm outline-none focus:border-ink"
                   />
-                  <button type="submit" disabled={!input.trim()} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-sage disabled:opacity-40">
+                  <button type="submit" disabled={!input.trim()} className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand disabled:opacity-40">
                     Send
                   </button>
                 </form>

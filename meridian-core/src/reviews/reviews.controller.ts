@@ -17,6 +17,7 @@ type ReviewBody = {
   stars?: number;
   avatar?: string;
   quote?: string;
+  metrics?: string[];
   published?: boolean;
   sortOrder?: number;
 };
@@ -54,6 +55,7 @@ export class ReviewsController {
         stars: clampStars(body.stars),
         avatar: body.avatar ?? '',
         quote: body.quote ?? '',
+        metrics: body.metrics ?? [],
         published: body.published ?? true,
         sortOrder: body.sortOrder ?? 0,
       },
@@ -71,6 +73,7 @@ export class ReviewsController {
         ...(body.stars !== undefined && { stars: clampStars(body.stars) }),
         ...(body.avatar !== undefined && { avatar: body.avatar }),
         ...(body.quote !== undefined && { quote: body.quote }),
+        ...(body.metrics !== undefined && { metrics: body.metrics }),
         ...(body.published !== undefined && { published: body.published }),
         ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),
       },

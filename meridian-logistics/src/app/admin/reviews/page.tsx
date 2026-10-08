@@ -69,7 +69,7 @@ export default function AdminReviewsPage() {
     <div className="mx-auto max-w-4xl px-5 pb-28 pt-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">Admin</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Admin</p>
           <h1 className="mt-2 text-3xl font-bold">Reviews editor</h1>
           <p className="mt-2 text-sm text-ink-mute">
             Stored in the database. Edits publish to every visitor immediately.
@@ -80,7 +80,7 @@ export default function AdminReviewsPage() {
         </Link>
       </div>
 
-      {error && <p role="alert" className="mt-6 rounded-xl bg-sage-tint px-4 py-3 text-sm text-sage-deep">{error}</p>}
+      {error && <p role="alert" className="mt-6 rounded-xl bg-brand-tint px-4 py-3 text-sm text-brand-deep">{error}</p>}
       {loading && <p className="mt-10 text-sm text-ink-mute">Loading… the free service may take a minute to wake.</p>}
 
       <div className="mt-8 space-y-6">
@@ -106,12 +106,12 @@ export default function AdminReviewsPage() {
                   type="range" min={1} max={5} step={1} value={r.stars}
                   aria-label="Star rating"
                   onChange={(e) => patch(r.id, { stars: Number(e.target.value) })}
-                  className="w-28 accent-sage"
+                  className="w-28 accent-brand"
                 />
                 <label className="flex items-center gap-1.5 text-xs font-medium">
                   <input type="checkbox" checked={r.published}
                     onChange={(e) => patch(r.id, { published: e.target.checked })}
-                    className="accent-sage" />
+                    className="accent-brand" />
                   Published
                 </label>
               </div>
@@ -124,8 +124,20 @@ export default function AdminReviewsPage() {
             </div>
             <textarea value={r.quote} onChange={(e) => patch(r.id, { quote: e.target.value })} aria-label="Review text" rows={3}
               className="mt-3 w-full rounded-xl border border-line px-4 py-2.5 text-sm outline-none focus:border-ink" />
+            {/* Result chips shown above the quote on the homepage card. */}
+            <input
+              value={(r.metrics ?? []).join(", ")}
+              onChange={(e) =>
+                patch(r.id, {
+                  metrics: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+                })
+              }
+              aria-label="Result chips, comma separated"
+              placeholder="Result chips, comma separated — e.g. -25% freight spend, 10 hrs/mo saved"
+              className="mt-3 w-full rounded-xl border border-line px-4 py-2.5 text-sm outline-none focus:border-ink"
+            />
             <div className="mt-4 flex items-center gap-4">
-              <button onClick={() => void saveOne(r)} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-sage">
+              <button onClick={() => void saveOne(r)} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand">
                 Save
               </button>
               <button

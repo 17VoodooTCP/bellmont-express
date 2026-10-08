@@ -102,6 +102,8 @@ model Review {
   stars     Int      @default(5)
   avatar    String   @default("")
   quote     String
+  /// Short result chips shown on the card, e.g. "-25% freight spend".
+  metrics   String[] @default([])
   published Boolean  @default(true)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())

@@ -7,6 +7,8 @@ import {
   STATUS_PROGRESS,
   STATUS_LABEL,
 } from "@/lib/api";
+import { useApiWarmth, warmOnIntent } from "@/components/ApiWarmth";
+import { warmApi } from "@/lib/wake";
 import RouteMap from "./RouteMap";
 import { openInvoice } from "@/lib/invoice";
 
@@ -48,7 +50,7 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
       <path
         d={arc}
         fill="none"
-        stroke="var(--sage)"
+        stroke="var(--brand)"
         strokeWidth="3.5"
         strokeLinecap="round"
         pathLength={1}
@@ -63,32 +65,32 @@ function RouteVisual({ shipment }: { shipment: Shipment }) {
       </text>
 
       {/* destination */}
-      <circle cx={P2.x} cy={P2.y} r="8" fill="none" stroke="var(--sage)" strokeWidth="3" />
-      {shipment.status === "delivered" && <circle cx={P2.x} cy={P2.y} r="4" fill="var(--sage)" />}
+      <circle cx={P2.x} cy={P2.y} r="8" fill="none" stroke="var(--brand)" strokeWidth="3" />
+      {shipment.status === "delivered" && <circle cx={P2.x} cy={P2.y} r="4" fill="var(--brand)" />}
       <text x={P2.x} y={P2.y + 30} textAnchor="middle" fontSize="13" fontWeight="600" fill="#3d3d3d">
         {shipment.destination.city}
       </text>
 
       {/* moving cargo vessel */}
       <g transform={`translate(${pos.x} ${pos.y}) rotate(${angle})`}>
-        <circle r="22" fill="var(--sage)" opacity="0.11">
+        <circle r="22" fill="var(--brand)" opacity="0.11">
           <animate attributeName="r" values="17;27;17" dur="2.4s" repeatCount="indefinite" />
         </circle>
         <g transform="translate(-24 -14)">
           <path d="M3 19h42l-7 8H10l-7-8Z" fill="#14170f" />
-          <path d="M7 19h34l-4 5H11l-4-5Z" fill="var(--sage)" />
+          <path d="M7 19h34l-4 5H11l-4-5Z" fill="var(--brand)" />
           <rect x="12" y="10" width="7" height="9" rx="1" fill="#14170f" />
-          <rect x="20" y="8" width="7" height="11" rx="1" fill="var(--sage)" />
+          <rect x="20" y="8" width="7" height="11" rx="1" fill="var(--brand)" />
           <rect x="28" y="10" width="7" height="9" rx="1" fill="#14170f" />
           <path d="M36 5h6v14h-6z" fill="#14170f" />
-          <path d="M39 2v4M36.5 4h5" stroke="var(--sage)" strokeWidth="1.5" strokeLinecap="round" />
-          <path d="M9 30h27" stroke="var(--sage)" strokeWidth="2" strokeLinecap="round" opacity=".75" />
+          <path d="M39 2v4M36.5 4h5" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M9 30h27" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" opacity=".75" />
         </g>
       </g>
 
       {/* current-location caption under the vessel */}
       <rect x={pos.x - 66} y={pos.y - 48} width="132" height="22" rx="11" fill="#fbfbf8" stroke="#e3e8df" />
-      <text x={pos.x} y={pos.y - 33} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--sage)">
+      <text x={pos.x} y={pos.y - 33} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--brand)">
         {shipment.currentLocation?.city || STATUS_LABEL[shipment.status]}
       </text>
     </svg>
@@ -116,15 +118,15 @@ function MilestoneRail({ status }: { status: Shipment["status"] }) {
             <div className="flex flex-col items-center gap-2">
               <span
                 className={`flex h-4 w-4 items-center justify-center rounded-full border-2 transition-colors ${
-                  done ? "border-sage bg-sage" : "border-line bg-white"
-                } ${active ? "ring-4 ring-sage/20" : ""}`}
+                  done ? "border-brand bg-brand" : "border-line bg-white"
+                } ${active ? "ring-4 ring-brand/20" : ""}`}
               />
               <span className={`w-14 text-center text-[10px] font-medium leading-tight sm:w-auto sm:whitespace-nowrap sm:text-[11px] ${done ? "text-ink" : "text-ink-mute"}`}>
                 {m.label}
               </span>
             </div>
             {i < MILESTONES.length - 1 && (
-              <div className={`mx-1 mb-7 h-0.5 flex-1 rounded sm:mx-2 sm:mb-5 ${STATUS_PROGRESS[MILESTONES[i + 1].key] <= reached ? "bg-sage" : "bg-line"}`} />
+              <div className={`mx-1 mb-7 h-0.5 flex-1 rounded sm:mx-2 sm:mb-5 ${STATUS_PROGRESS[MILESTONES[i + 1].key] <= reached ? "bg-brand" : "bg-line"}`} />
             )}
           </li>
         );
@@ -139,6 +141,7 @@ export default function TrackingExperience() {
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const warmth = useApiWarmth();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,13 +171,14 @@ export default function TrackingExperience() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 pb-28 pt-32">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">Live tracking</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Live tracking</p>
       <h1 className="mt-4 text-4xl font-bold md:text-6xl">Where is my cargo?</h1>
 
       <form onSubmit={submit} className="mt-10 flex max-w-xl overflow-hidden rounded-full border border-line focus-within:border-ink">
         <input
           value={id}
           onChange={(e) => setId(e.target.value)}
+          onFocus={() => void warmApi()}
           placeholder="Tracking number, e.g. CP123456785US"
           aria-label="Tracking number"
           className="notranslate flex-1 bg-transparent px-6 py-4 text-sm outline-none placeholder:text-ink-mute"
@@ -182,14 +186,26 @@ export default function TrackingExperience() {
         <button
           type="submit"
           disabled={loading}
-          className="m-1.5 rounded-full bg-ink px-7 text-sm font-semibold text-white transition-colors hover:bg-sage disabled:opacity-50"
+          {...warmOnIntent}
+          className="m-1.5 rounded-full bg-iris px-7 text-sm font-semibold text-white transition-colors hover:bg-iris-deep disabled:opacity-50"
         >
           {loading ? "Locating…" : "Track"}
         </button>
       </form>
 
+      {/* The free instance sleeps after 15 minutes idle. If it is still booting
+          when someone searches, say so with a running count rather than leaving
+          a spinner that looks broken. */}
+      {loading && warmth.status === "waking" && (
+        <p className="mt-6 max-w-xl rounded-xl bg-brand-tint px-5 py-4 text-sm text-brand-deep" role="status">
+          Waking the tracking service — it sleeps when idle on our current plan.
+          {warmth.elapsed > 2 && ` ${warmth.elapsed}s so far;`} usually ready
+          within a minute.
+        </p>
+      )}
+
       {error && (
-        <p role="alert" className="mt-6 max-w-xl rounded-xl bg-sage-tint px-5 py-4 text-sm text-sage-deep">
+        <p role="alert" className="mt-6 max-w-xl rounded-xl bg-brand-tint px-5 py-4 text-sm text-brand-deep">
           {error}
         </p>
       )}
@@ -211,7 +227,7 @@ export default function TrackingExperience() {
                 )}
               </div>
               {shipment.status === "on_hold" && shipment.holdReason && (
-                <p className="max-w-xs rounded-xl bg-sage-tint px-4 py-3 text-xs leading-relaxed text-sage-deep">
+                <p className="max-w-xs rounded-xl bg-brand-tint px-4 py-3 text-xs leading-relaxed text-brand-deep">
                   On hold: {shipment.holdReason}
                 </p>
               )}
@@ -260,7 +276,7 @@ export default function TrackingExperience() {
                 </div>
                 <button
                   onClick={() => openInvoice(shipment)}
-                  className="rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-sage"
+                  className="rounded-full bg-iris px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-iris-deep"
                 >
                   View and download invoice
                 </button>
@@ -271,7 +287,7 @@ export default function TrackingExperience() {
                     <span className="min-w-0 truncate">{inv.description || "Service fee"}</span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="font-semibold">${(inv.amount || 0).toFixed(2)}</span>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${inv.paid ? "bg-green-100 text-green-700" : "bg-sage-tint text-sage-deep"}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${inv.paid ? "bg-green-100 text-green-700" : "bg-brand-tint text-brand-deep"}`}>
                         {inv.paid ? "PAID" : "DUE"}
                       </span>
                     </span>
@@ -291,7 +307,7 @@ export default function TrackingExperience() {
                     {i < all.length - 1 && (
                       <span className="absolute left-[7px] top-5 h-full w-0.5 bg-line" aria-hidden="true" />
                     )}
-                    <span className={`relative mt-1.5 h-4 w-4 shrink-0 rounded-full ${i === 0 ? "bg-sage" : "border-2 border-line bg-white"}`} />
+                    <span className={`relative mt-1.5 h-4 w-4 shrink-0 rounded-full ${i === 0 ? "bg-brand" : "border-2 border-line bg-white"}`} />
                     <div className="min-w-0">
                       <p className="font-medium">{ev.description}</p>
                       <p className="mt-0.5 text-sm text-ink-mute">

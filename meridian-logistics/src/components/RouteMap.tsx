@@ -17,6 +17,31 @@ const distanceKm = (a: Point, b: Point) => {
   return Math.sqrt(dLat * dLat + dLng * dLng);
 };
 
+/* A straight line between two ports reads as a ruler, not a journey. Bending
+   it on the perpendicular of the midpoint gives the familiar flight-path arc.
+   Sampled into points so Leaflet can draw it as a normal polyline. */
+function arcPoints(a: Point, b: Point, bend = 0.2, steps = 96): Point[] {
+  const mLat = (a.lat + b.lat) / 2;
+  const mLng = (a.lng + b.lng) / 2;
+  const dLat = b.lat - a.lat;
+  const dLng = b.lng - a.lng;
+  const cLat = mLat - dLng * bend;
+  const cLng = mLng + dLat * bend;
+
+  const out: Point[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const u = 1 - t;
+    out.push({
+      lat: u * u * a.lat + 2 * u * t * cLat + t * t * b.lat,
+      lng: u * u * a.lng + 2 * u * t * cLng + t * t * b.lng,
+    });
+  }
+  return out;
+}
+
+const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
 const escapeHtml = (value?: string) =>
   (value ?? '').replace(/[&<>\"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#039;',
@@ -44,8 +69,10 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
 
   useEffect(() => {
     let dead = false;
+    let frame = 0;
     // Leaflet touches `window`, so it loads client-side only
     let cleanup: (() => void) | undefined;
+    const progress = STATUS_PROGRESS[shipment.status] ?? 0.5;
 
     (async () => {
       const L = (await import("leaflet")).default;
@@ -113,56 +140,137 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
         iconSize: [58, 58],
         iconAnchor: [29, 29],
         html: `<div style="position:relative;width:58px;height:58px">
-          <div style="position:absolute;inset:3px;border-radius:50%;background:#61735a22;box-shadow:0 0 0 1px #61735a33;animation:mPulse 2.4s ease-out infinite"></div>
-          <div style="position:absolute;inset:10px;border-radius:50%;background:#fbfbf8;border:1px solid #d9dfd5;box-shadow:0 5px 16px #14170f33;display:grid;place-items:center">
+          <div style="position:absolute;inset:3px;border-radius:50%;background:#fca83733;box-shadow:0 0 0 1px #fca83755;animation:mPulse 2.4s ease-out infinite"></div>
+          <div style="position:absolute;inset:10px;border-radius:50%;background:#ffffff;border:1px solid #e6ebf3;box-shadow:0 5px 16px #1e295033;display:grid;place-items:center">
             <svg viewBox="0 0 40 40" width="32" height="32" aria-hidden="true">
-              <path d="M5 23h30l-4 6H10l-5-6Z" fill="#14170f"/>
-              <path d="M9 23h22l-2 4H11l-2-4Z" fill="#61735a"/>
-              <rect x="12" y="16" width="5" height="7" rx=".7" fill="#14170f"/>
-              <rect x="18" y="14" width="5" height="9" rx=".7" fill="#61735a"/>
-              <rect x="24" y="16" width="5" height="7" rx=".7" fill="#14170f"/>
-              <path d="M8 30h21" stroke="#61735a" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M5 23h30l-4 6H10l-5-6Z" fill="#1e2950"/>
+              <path d="M9 23h22l-2 4H11l-2-4Z" fill="#fca837"/>
+              <rect x="12" y="16" width="5" height="7" rx=".7" fill="#1e2950"/>
+              <rect x="18" y="14" width="5" height="9" rx=".7" fill="#fca837"/>
+              <rect x="24" y="16" width="5" height="7" rx=".7" fill="#1e2950"/>
+              <path d="M8 30h21" stroke="#fca837" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
           </div>
         </div>`,
       });
 
-      if (o) L.marker([o.lat, o.lng], { icon: dot("#14170f") }).addTo(map).bindPopup(`<b>Origin</b><br>${escapeHtml(shipment.origin.city)}`);
-      if (d) L.marker([d.lat, d.lng], { icon: dot("#61735a", true) }).addTo(map).bindPopup(`<b>Destination</b><br>${escapeHtml(shipment.destination.city)}`);
-      if (stage) {
+      if (o) L.marker([o.lat, o.lng], { icon: dot("#1e2950") }).addTo(map).bindPopup(`<b>Origin</b><br>${escapeHtml(shipment.origin.city)}`);
+      if (d) L.marker([d.lat, d.lng], { icon: dot("#49629d", true) }).addTo(map).bindPopup(`<b>Destination</b><br>${escapeHtml(shipment.destination.city)}`);
+      /* The vessel is created with the route below, so it can be flown along
+         the arc rather than dropped at its final position. */
+
+      /* The planned route as an arc, with the travelled leg drawn over it and
+         the vessel flown along it once on load. */
+      if (o && d) {
+        const arc = arcPoints(o, d);
+        const travelledTo = Math.max(1, Math.round(progress * (arc.length - 1)));
+
+        L.polyline(arc.map((p) => [p.lat, p.lng] as [number, number]), {
+          color: "#9fb0cf",
+          weight: 3,
+          dashArray: "4 10",
+          opacity: 0.85,
+          className: "route-planned",
+        }).addTo(map);
+
+        const travelled = L.polyline([[o.lat, o.lng]], {
+          color: "#fca837",
+          weight: 5,
+          opacity: 0.98,
+          lineCap: "round",
+        }).addTo(map);
+
+        const vesselMarker = stage
+          ? L.marker([o.lat, o.lng], { icon: vessel, zIndexOffset: 500 })
+              .addTo(map)
+              .bindPopup(`<b>Live position</b><br>${escapeHtml(stageLabel)}`)
+          : null;
+
+        const settle = () => {
+          travelled.setLatLngs(
+            arc.slice(0, travelledTo + 1).map((p) => [p.lat, p.lng] as [number, number])
+          );
+          vesselMarker?.setLatLng([arc[travelledTo].lat, arc[travelledTo].lng]);
+        };
+
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduced) {
+          settle();
+        } else {
+          /* Draw the journey rather than snapping to the answer: the line
+             grows and the vessel rides it to the live position. */
+          const DURATION = 1500;
+          const start = performance.now();
+          const step = (now: number) => {
+            if (dead) return;
+            const t = Math.min(1, (now - start) / DURATION);
+            const i = Math.max(1, Math.round(easeOutCubic(t) * travelledTo));
+            travelled.setLatLngs(
+              arc.slice(0, i + 1).map((p) => [p.lat, p.lng] as [number, number])
+            );
+            vesselMarker?.setLatLng([arc[i].lat, arc[i].lng]);
+            if (t < 1) frame = requestAnimationFrame(step);
+            else settle();
+          };
+          frame = requestAnimationFrame(step);
+        }
+      } else if (stage) {
         L.marker([stage.lat, stage.lng], { icon: vessel, zIndexOffset: 500 })
           .addTo(map)
           .bindPopup(`<b>Live position</b><br>${escapeHtml(stageLabel)}`);
       }
 
-      // Planned route, then the traveled leg highlighted to the live vessel.
-      if (o && d) L.polyline([[o.lat, o.lng], [d.lat, d.lng]], {
-        color: "#aeb8c0", weight: 3, dashArray: "5 11", opacity: 0.75,
-      }).addTo(map);
-      if (o && stage) {
-        L.polyline([[o.lat, o.lng], [stage.lat, stage.lng]], {
-          color: "#61735a", weight: 5, opacity: 0.95,
-        }).addTo(map);
-      }
-
       map.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lng])), { padding: [46, 46] });
       window.setTimeout(() => map.invalidateSize(), 80);
       cleanup = () => {
+        cancelAnimationFrame(frame);
         map.remove();
       };
     })();
 
-    return () => { dead = true; cleanup?.(); };
+    return () => { dead = true; cancelAnimationFrame(frame); cleanup?.(); };
   }, [shipment]);
 
+  /* Stored as UTC midnight, so format in UTC or the day slips backwards for
+     anyone west of Greenwich. */
+  const etaLabel = shipment.estimatedDelivery
+    ? new Date(shipment.estimatedDelivery).toLocaleDateString("en-US", {
+        weekday: "long", month: "long", day: "numeric", timeZone: "UTC",
+      })
+    : null;
+
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-[#eef3ed]">
+    <div className="relative overflow-hidden rounded-2xl bg-[#eef1fa]">
       <div ref={box} className="h-[420px] w-full overflow-hidden rounded-2xl" aria-label="Live shipment map" />
       <div className="pointer-events-none absolute left-4 top-4 rounded-xl border border-white/80 bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#61735a]">Live position</p>
-        <p className="mt-0.5 text-xs font-semibold text-[#14170f]">{stageLabel}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#fca837]">Live position</p>
+        <p className="mt-0.5 text-xs font-semibold text-[#1e2950]">{stageLabel}</p>
       </div>
-      <style>{`@keyframes mPulse{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1.8);opacity:0}}`}</style>
+
+      {/* ETA card, drawn after the route lands so it reads as the conclusion
+          of the animation rather than competing with it. */}
+      {etaLabel && (
+        <div className="route-eta pointer-events-none absolute bottom-4 left-4 right-4 flex items-center gap-3 rounded-2xl border border-white/80 bg-white/95 px-4 py-3 shadow-[0_14px_34px_rgba(30,41,80,.18)] backdrop-blur sm:right-auto">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#dff5e5]" aria-hidden="true">
+            <svg viewBox="0 0 20 20" className="h-4 w-4">
+              <path d="M4 10.5l4 4 8-9" fill="none" stroke="#3d9a60" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <p className="text-sm leading-tight">
+            <span className="font-extrabold tracking-tight text-[#fca837]">ETA:</span>{" "}
+            <span className="font-semibold text-[#1e2950]">{etaLabel}</span>
+          </p>
+        </div>
+      )}
+      <style>{`
+        @keyframes mPulse{0%{transform:scale(.6);opacity:.4}100%{transform:scale(1.8);opacity:0}}
+        @keyframes routeMarch{to{stroke-dashoffset:-28}}
+        .route-planned{animation:routeMarch 1.1s linear infinite}
+        @media (prefers-reduced-motion: reduce){.route-planned{animation:none}}
+        @keyframes routeEta{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+        .route-eta{opacity:0;animation:routeEta .5s cubic-bezier(.22,1,.36,1) 1.4s forwards}
+        @media (prefers-reduced-motion: reduce){.route-eta{opacity:1;animation:none}}
+      `}</style>
     </div>
   );
 }

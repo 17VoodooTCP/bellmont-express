@@ -16,14 +16,14 @@ const TOPICS = [
 export default function SupportPage() {
   return (
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-32">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">Support</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Support</p>
       <h1 className="mt-4 max-w-3xl text-4xl font-bold md:text-6xl">
         Real help, from real people.
       </h1>
       <p className="mt-6 max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg">
         Our support team sits inside our operations centers, so the people who
         answer are the people who can act. Reach us any time at{" "}
-        <a href="mailto:support@bellmontexpress.com" className="notranslate font-semibold text-sage hover:underline">
+        <a href="mailto:support@bellmontexpress.com" className="notranslate font-semibold text-brand hover:underline">
           support@bellmontexpress.com
         </a>{" "}
         or use live chat in the corner of every page.
@@ -34,7 +34,7 @@ export default function SupportPage() {
           <div key={t.title} className="flex flex-col rounded-2xl border border-line p-7">
             <h2 className="text-lg font-semibold">{t.title}</h2>
             <p className="mt-2.5 flex-1 text-sm leading-relaxed text-ink-soft">{t.copy}</p>
-            <Link href={t.href} className="mt-5 text-sm font-semibold text-sage hover:underline">
+            <Link href={t.href} className="mt-5 text-sm font-semibold text-brand hover:underline">
               {t.cta} →
             </Link>
           </div>

@@ -103,6 +103,7 @@ export type DbReview = {
   stars: number;
   avatar: string;
   quote: string;
+  metrics?: string[];
   published: boolean;
   sortOrder: number;
 };

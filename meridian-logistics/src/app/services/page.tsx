@@ -18,7 +18,7 @@ const SERVICES = [
 export default function ServicesPage() {
   return (
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-32">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-sage">Services</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Services</p>
       <h1 className="mt-4 max-w-3xl text-4xl font-bold md:text-6xl">
         Every mode. One platform.
       </h1>
@@ -32,7 +32,7 @@ export default function ServicesPage() {
         {SERVICES.map((s, i) => (
           <div key={s.title} className="grid gap-3 py-8 md:grid-cols-[220px_1fr] md:gap-10">
             <div className="flex items-baseline gap-4">
-              <span className="notranslate text-sm font-semibold text-sage">
+              <span className="notranslate text-sm font-semibold text-brand">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <h2 className="text-xl font-semibold">{s.title}</h2>
@@ -44,7 +44,7 @@ export default function ServicesPage() {
 
       <Link
         href="/tracking"
-        className="mt-12 inline-block rounded-full bg-ink px-8 py-4 text-sm font-semibold text-white transition-colors hover:bg-sage"
+        className="mt-12 inline-block rounded-full bg-iris px-8 py-4 text-sm font-semibold text-white transition-colors hover:bg-iris-deep"
       >
         Track a shipment
       </Link>

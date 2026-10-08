@@ -29,3 +29,9 @@ tmp-ship-options/
 Thumbs.db
 *.pem
 .vercel/
+
+# Frames extracted from screen recordings by tools/video_frames.py
+frames/
+
+# Full-resolution masters moved out of public/ (kept locally, not deployed)
+design-masters/unused-from-public/

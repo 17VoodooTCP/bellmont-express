@@ -154,7 +154,7 @@ export default function AdminDashboard() {
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="notranslate flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-sage"><span className="inline-block">Bellmont Express</span> Admin</p>
+          <p className="notranslate flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand"><span className="inline-block">Bellmont Express</span> Admin</p>
           <h1 className="mt-2 text-3xl font-bold">Operations console</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
           </Link>
           <button
             onClick={() => { setEditing(emptyForm()); }}
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-sage"
+            className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand"
           >
             New shipment
           </button>
@@ -182,7 +182,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {error && <p role="alert" className="mt-6 rounded-xl bg-sage-tint px-4 py-3 text-sm text-sage-deep">{error}</p>}
+      {error && <p role="alert" className="mt-6 rounded-xl bg-brand-tint px-4 py-3 text-sm text-brand-deep">{error}</p>}
 
       {/* shipments table */}
       <div className="mt-8 overflow-x-auto rounded-2xl border border-line">
@@ -225,7 +225,7 @@ export default function AdminDashboard() {
                     : <span className="text-ink-mute">None</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => setEditing({ ...s })} className="mr-3 text-xs font-semibold text-sage hover:underline">Edit</button>
+                  <button onClick={() => setEditing({ ...s })} className="mr-3 text-xs font-semibold text-brand hover:underline">Edit</button>
                   <button
                     onClick={() => { if (confirm(`Delete ${s.trackingId}?`)) deleteShipment(s._id).then(refresh); }}
                     className="text-xs font-semibold text-red-600 hover:underline"
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
                       <span className="font-semibold">${(inv.amount || 0).toFixed(2)}</span>
                       <button
                         onClick={() => setEditing({ ...editing, invoices: editing.invoices!.map((x, xi) => xi === i ? { ...x, paid: !x.paid } : x) })}
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${inv.paid ? "bg-green-100 text-green-700" : "bg-sage-tint text-sage-deep"}`}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${inv.paid ? "bg-green-100 text-green-700" : "bg-brand-tint text-brand-deep"}`}
                       >
                         {inv.paid ? "PAID" : "DUE"}
                       </button>
@@ -323,7 +323,7 @@ export default function AdminDashboard() {
                 <select value={fee.type} onChange={(e) => setFee({ ...fee, type: e.target.value })} aria-label="Fee type" className="rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-ink">
                   {FEE_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
-                <button onClick={addFee} className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-sage">Add</button>
+                <button onClick={addFee} className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white hover:bg-brand">Add</button>
               </div>
               <p className="mt-3 text-xs text-ink-mute">
                 Saved fees appear instantly on the customer&rsquo;s tracking page as a downloadable branded invoice.
@@ -341,7 +341,7 @@ export default function AdminDashboard() {
 
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setEditing(null)} className="rounded-full border border-line px-6 py-3 text-sm font-semibold hover:border-ink">Cancel</button>
-              <button onClick={() => void save()} disabled={saving} className="rounded-full bg-ink px-7 py-3 text-sm font-semibold text-white hover:bg-sage disabled:opacity-50">
+              <button onClick={() => void save()} disabled={saving} className="rounded-full bg-ink px-7 py-3 text-sm font-semibold text-white hover:bg-brand disabled:opacity-50">
                 {saving ? "Saving…" : editing._id ? "Save changes" : "Create shipment"}
               </button>
             </div>

@@ -1,8 +1,10 @@
 import Reveal from "@/components/Reveal";
 import WelcomeHero from "@/components/WelcomeHero";
-import ReviewsSection from "@/components/ReviewsSection";
 import RotatingCards from "@/components/RotatingCards";
-import PlatformShowcase from "@/components/PlatformShowcase";
+import RatesContent from "@/components/RatesContent";
+import BlogContent from "@/components/BlogContent";
+import { summaries } from "@/lib/blog";
+import FinalCta from "@/components/FinalCta";
 import FeatureRail from "@/components/FeatureRail";
 import { TrustMarquee, PostFeatureSections } from "@/components/HomeV2Sections";
 
@@ -116,7 +118,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl px-5 py-28 md:py-36">
           <Reveal>
             <div className="grid gap-8 md:grid-cols-[0.8fr_1.5fr] md:items-end">
-              <p className="section-kicker text-sage-soft">The operating system</p>
+              <p className="section-kicker text-brand-soft">The operating system</p>
               <div>
                 <h2 className="max-w-3xl text-4xl font-bold leading-[0.98] md:text-6xl">
                   Four ways through the world. One point of view.
@@ -133,13 +135,13 @@ export default function Home() {
               <Reveal key={s.title} delay={i * 0.08}>
                 <div className="service-card group relative h-full p-7 md:p-8">
                   <div className="flex items-start justify-between gap-4">
-                    <span className="text-xs font-semibold tracking-[0.2em] text-sage-soft">{s.number}</span>
-                    <div className="text-paper/80 transition-colors group-hover:text-sage-soft">{s.icon}</div>
+                    <span className="text-xs font-semibold tracking-[0.2em] text-brand-soft">{s.number}</span>
+                    <div className="text-paper/80 transition-colors group-hover:text-brand-soft">{s.icon}</div>
                   </div>
                   <p className="mt-14 text-[10px] font-semibold uppercase tracking-[0.22em] text-paper/45">{s.eyebrow}</p>
                   <h3 className="mt-3 text-xl font-semibold">{s.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-paper/65">{s.copy}</p>
-                  <span className="mt-8 block h-px w-10 bg-sage-soft/60 transition-all group-hover:w-20" />
+                  <span className="mt-8 block h-px w-10 bg-brand-soft/60 transition-all group-hover:w-20" />
                 </div>
               </Reveal>
             ))}
@@ -147,7 +149,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="network" className="stat-band border-y border-sage-deep/30 bg-sage text-ink">
+      <section id="network" className="stat-band border-y border-brand-deep/30 bg-brand text-ink">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-y-10 px-5 py-20 md:grid-cols-4">
           {STATS.map((s, i) => (
             <Reveal key={s.label} delay={i * 0.08}>
@@ -163,7 +165,7 @@ export default function Home() {
       <section id="people" className="relative overflow-hidden bg-paper">
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-28 md:py-36 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
           <Reveal>
-            <p className="section-kicker text-sage">The human layer</p>
+            <p className="section-kicker text-brand">The human layer</p>
             <h2 className="mt-5 max-w-xl text-4xl font-bold leading-[0.98] md:text-6xl">
               The last hundred metres are still the whole point.
             </h2>
@@ -172,22 +174,30 @@ export default function Home() {
               door. The network only counts when it becomes useful to a person.
             </p>
             <div className="mt-10 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-ink-mute">
-              <span className="h-px w-12 bg-sage" />
+              <span className="h-px w-12 bg-brand" />
               Twelve thousand people, one living record
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <div className="relative">
-              <span className="pointer-events-none absolute -right-3 -top-16 hidden text-[8rem] font-bold leading-none text-sage-tint md:block">∞</span>
+              <span className="pointer-events-none absolute -right-3 -top-16 hidden text-[8rem] font-bold leading-none text-brand-tint md:block">∞</span>
               <RotatingCards cards={PEOPLE} />
             </div>
           </Reveal>
         </div>
       </section>
 
-      <ReviewsSection />
-
-      <PlatformShowcase />
+      {/* The check-rate content, shared with /rates and styled exactly as
+          there. Replaces the reviews section and the iPhone showcase. */}
+      <div className="rates-page">
+        <RatesContent />
+      </div>
+      {/* The three newest articles from the blog, styled exactly as /blog,
+          with a link through to the full list. */}
+      <div className="blog-page">
+        <BlogContent posts={summaries()} limit={3} />
+      </div>
+      <FinalCta />
     </div>
   );
 }

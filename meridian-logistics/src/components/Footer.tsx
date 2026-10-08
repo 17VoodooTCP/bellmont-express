@@ -68,7 +68,7 @@ export default function Footer() {
             </p>
             <a
               href="mailto:support@bellmontexpress.com"
-              className="notranslate mt-5 inline-block text-sm font-semibold text-ink transition-colors hover:text-sage"
+              className="notranslate mt-5 inline-block text-sm font-semibold text-ink transition-colors hover:text-brand"
             >
               support@bellmontexpress.com
             </a>
@@ -100,7 +100,7 @@ export default function Footer() {
                   <li key={item.label}>
                     <Link
                       href={item.href}
-                      className="text-sm text-ink-soft transition-colors hover:text-sage"
+                      className="text-sm text-ink-soft transition-colors hover:text-brand"
                     >
                       {item.label}
                     </Link>

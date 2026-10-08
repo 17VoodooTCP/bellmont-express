@@ -7,5 +7,11 @@ export const metadata: Metadata = {
 };
 
 export default function TrackingPage() {
-  return <TrackingExperience />;
+  /* Cream ground taken from the monitoring illustration, so the tracking page
+     reads as the same material as the artwork rather than plain white. */
+  return (
+    <div className="tracking-ground">
+      <TrackingExperience />
+    </div>
+  );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import IntegrationsHub from "./IntegrationsHub";
 
 const STEPS = [
   ["01", "Connect your store & carriers", "Complete Bellmont's onboarding flow, sync orders, products, and customers, then connect Shopify, WooCommerce, BigCommerce, Wix, UPS, FedEx, and USPS."],
@@ -20,7 +21,7 @@ export function PostFeatureSections() {
   const [active, setActive] = useState(0);
   return <>
     <section className="hv2-hiw bg-white"><div className="hv2-container hv2-hiw-pin"><div className="hv2-sec-head hv2-sec-head-compact"><span className="hv2-eyebrow"><span className="hv2-eyebrow-dot" />Set up in minutes</span><h2 className="hv2-h2">A calmer way to run freight.</h2><p className="hv2-sec-sub">Bellmont streamlines your entire logistics operation—from checkout to delivery, all in one platform.</p></div><div className="hv2-hiw-grid hv2-setup-grid"><div className="hv2-setup-steps">{STEPS.map(([number, title, body], index) => <button type="button" className={`hv2-step ${active === index ? "hv2-step-active" : ""}`} onClick={() => setActive(index)} key={number}><span className="hv2-step-tick">{number}</span><span className="hv2-step-content"><span className="hv2-step-title">{title}</span><span className="hv2-step-body">{body}</span></span></button>)}</div><SetupPreview active={active} /></div></div></section>
-    <section className="hv2-network"><div className="hv2-container"><div className="hv2-sec-head"><span className="hv2-eyebrow"><span className="hv2-eyebrow-dot" />One living record</span><h2 className="hv2-h2">Every handoff, connected.</h2><p className="hv2-sec-sub">Your storefront, carriers, operations team, and recipients work from the same source of truth.</p></div><div className="hv2-network-board"><div className="hv2-network-node hv2-network-node--top">Commerce<br /><small>Orders + customers</small></div><div className="hv2-network-node hv2-network-node--left">Carriers<br /><small>Ocean · Air · Road</small></div><div className="hv2-network-node hv2-network-node--right">Operations<br /><small>Rules + exceptions</small></div><div className="hv2-network-hub"><span className="hv2-network-mark">B</span><b>Bellmont</b><small>live record</small></div><div className="hv2-network-node hv2-network-node--bottom">Recipient experience<br /><small>Tracking + support</small></div></div></div></section>
+    <IntegrationsHub />
   </>;
 }
 

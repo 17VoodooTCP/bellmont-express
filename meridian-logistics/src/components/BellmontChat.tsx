@@ -37,12 +37,12 @@ function Bubble({ msg }: { msg: Msg }) {
       <div
         className={`max-w-[78%] px-3.5 py-2 text-[14px] leading-snug ${
           mine
-            ? "rounded-2xl rounded-br-[6px] bg-sage text-white"
-            : "rounded-2xl rounded-bl-[6px] bg-sage-tint text-ink"
+            ? "rounded-2xl rounded-br-[6px] bg-brand text-white"
+            : "rounded-2xl rounded-bl-[6px] bg-brand-tint text-ink"
         }`}
       >
         {!mine && msg.sender === "admin" && (
-          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage">Agent</p>
+          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">Agent</p>
         )}
         {att ? (
           att.type.startsWith("image/") ? (
@@ -52,7 +52,7 @@ function Bubble({ msg }: { msg: Msg }) {
             <a
               href={att.data}
               download={att.name}
-              className={`flex items-center gap-2 font-medium underline ${mine ? "text-white" : "text-sage-deep"}`}
+              className={`flex items-center gap-2 font-medium underline ${mine ? "text-white" : "text-brand-deep"}`}
             >
               <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden="true">
                 <path d="M8 2a3 3 0 0 0-3 3v8a4 4 0 0 0 8 0V6h-1.5v7a2.5 2.5 0 0 1-5 0V5a1.5 1.5 0 1 1 3 0v7a.75.75 0 0 1-1.5 0V6H6.5v6a2.25 2.25 0 0 0 4.5 0V5a3 3 0 0 0-3-3z" />
@@ -79,10 +79,35 @@ export default function BellmontChat() {
   const sessionRef = useRef<string>("");
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
+  /* Scroll the message list itself. scrollIntoView would also scroll every
+     scrollable ancestor — including the page — which made the whole site jump
+     on phones whenever a message arrived or the panel opened. */
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const list = listRef.current;
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [msgs, typing, open]);
+
+  /* On phones the panel is a full-screen sheet: hold the page still behind it,
+     and let Escape (hardware keyboards) close it like a native sheet. */
+  useEffect(() => {
+    if (!open) return;
+    const phone = window.matchMedia("(max-width: 639px)").matches;
+    const root = document.documentElement;
+    const prev = { html: root.style.overflow, body: document.body.style.overflow };
+    if (phone) {
+      root.style.overflow = "hidden";
+      document.body.style.overflow = "hidden";
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      root.style.overflow = prev.html;
+      document.body.style.overflow = prev.body;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   // connect lazily the first time the panel opens
   useEffect(() => {
@@ -183,26 +208,39 @@ export default function BellmontChat() {
 
   return (
     <>
-      {/* launcher */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? "Close support chat" : "Open support chat"}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-orange text-white shadow-[0_12px_30px_rgba(216,134,33,.35)] transition-transform hover:scale-105"
-      >
-        {open ? (
+      {/* launcher: a "LiveChat" speech bubble while closed, a round close
+          button while the panel is open */}
+      {open ? (
+        <button
+          onClick={() => setOpen(false)}
+          aria-label="Close support chat"
+          className="fixed bottom-5 right-5 z-50 hidden h-14 w-14 sm:flex items-center justify-center rounded-full bg-[#1e2950] text-white shadow-[0_12px_30px_rgba(30,41,80,.3)] transition-transform hover:scale-105"
+        >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a8 8 0 0 1-8 8H4l2.4-2.9A8 8 0 1 1 21 12z" strokeLinejoin="round" /></svg>
-        )}
-      </button>
+        </button>
+      ) : (
+        <button onClick={() => setOpen(true)} aria-label="Open live chat" className="lc-bubble">
+          <span className="lc-dot" aria-hidden="true" />
+          <span className="lc-live">Live</span>
+          <span className="lc-chat">Chat</span>
+        </button>
+      )}
 
       {/* panel */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-50 flex h-[560px] w-[min(390px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-[1.35rem] border border-line bg-white shadow-2xl">
-          <header className="bg-orange px-5 py-6 text-white">
+        <div className="chat-sheet fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden bg-white sm:inset-auto sm:bottom-24 sm:right-5 sm:h-[560px] sm:max-h-[calc(100dvh-8rem)] sm:w-[min(390px,calc(100vw-2.5rem))] sm:rounded-[1.35rem] sm:border sm:border-line sm:shadow-2xl" role="dialog" aria-label="Live chat">
+          <header className="chat-sheet__header relative bg-orange px-5 pb-5 pt-4 text-white sm:py-6">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close live chat"
+              className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white sm:hidden"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
             <div>
               <p className="text-center text-sm font-medium">Send a message</p>
-              <p className="mt-7 text-center text-2xl font-bold">How can we help?</p>
+              <p className="mt-3 text-center text-2xl font-bold sm:mt-7">How can we help?</p>
               <p className="mt-1 text-center text-sm text-white/80">We usually respond within an hour on weekdays</p>
               <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-white/80">
                 <span className={`h-1.5 w-1.5 rounded-full ${connected ? "bg-white" : "bg-white/40"}`} />
@@ -211,7 +249,7 @@ export default function BellmontChat() {
             </div>
           </header>
 
-          <div className="flex-1 space-y-2.5 overflow-y-auto bg-white px-3.5 py-4">
+          <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto overscroll-contain bg-white px-3.5 py-4">
             {msgs.map((m, i) => (
               <div key={i}>
                 <Bubble msg={m} />
@@ -221,7 +259,7 @@ export default function BellmontChat() {
                       <button
                         key={q.value}
                         onClick={() => sendRaw(q.value)}
-                className="rounded-full border border-sage px-3 py-1 text-xs font-medium text-sage hover:bg-sage hover:text-white"
+                className="rounded-full border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white"
                       >
                         {q.label}
                       </button>
@@ -232,9 +270,9 @@ export default function BellmontChat() {
             ))}
             {typing && (
               <div className="flex justify-start">
-                <div className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-sage-tint px-4 py-3">
+                <div className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-brand-tint px-4 py-3">
                   {[0, 1, 2].map((d) => (
-                    <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-sage-soft" style={{ animationDelay: `${d * 0.15}s` }} />
+                    <span key={d} className="h-2 w-2 animate-bounce rounded-full bg-brand-soft" style={{ animationDelay: `${d * 0.15}s` }} />
                   ))}
                 </div>
               </div>
@@ -242,7 +280,7 @@ export default function BellmontChat() {
             <div ref={endRef} />
           </div>
 
-          <form onSubmit={send} className="flex items-center gap-2 border-t border-line bg-[#fbfbf8] px-3 py-3">
+          <form onSubmit={send} className="chat-sheet__composer flex items-center gap-2 border-t border-line bg-[#fbfbf8] px-3 py-3">
             <input
               ref={fileRef}
               type="file"
@@ -265,7 +303,7 @@ export default function BellmontChat() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type here"
               aria-label="Message"
-              className="min-w-0 flex-1 rounded-full bg-[#F2F2F7] px-4 py-2.5 text-sm outline-none placeholder:text-ink-mute"
+              className="min-w-0 flex-1 rounded-full bg-[#F2F2F7] px-4 py-2.5 text-base outline-none placeholder:text-ink-mute sm:text-sm"
             />
             <button
               type="submit"

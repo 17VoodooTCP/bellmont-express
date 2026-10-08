@@ -141,7 +141,7 @@ export default function RotatingCards({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onKeyDown={onKeyDown}
-        className="mx-auto flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
+        className="mx-auto flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-4 focus-visible:ring-offset-paper"
         style={{
           height: cardHeight + 90,
           perspective: `${perspective}px`,
@@ -188,7 +188,7 @@ export default function RotatingCards({
                 )}
                 <div className="p-5">
                   {card.caption && (
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-sage">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-brand">
                       {card.caption}
                     </p>
                   )}
@@ -206,7 +206,7 @@ export default function RotatingCards({
           type="button"
           onClick={() => step(1)}
           aria-label="Previous card"
-          className="grid h-9 w-9 place-items-center rounded-full border border-line text-ink-soft transition hover:border-sage hover:text-sage"
+          className="grid h-9 w-9 place-items-center rounded-full border border-line text-ink-soft transition hover:border-brand hover:text-brand"
         >
           ‹
         </button>
@@ -215,7 +215,7 @@ export default function RotatingCards({
           type="button"
           onClick={() => step(-1)}
           aria-label="Next card"
-          className="grid h-9 w-9 place-items-center rounded-full border border-line text-ink-soft transition hover:border-sage hover:text-sage"
+          className="grid h-9 w-9 place-items-center rounded-full border border-line text-ink-soft transition hover:border-brand hover:text-brand"
         >
           ›
         </button>

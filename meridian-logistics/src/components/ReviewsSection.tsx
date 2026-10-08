@@ -39,7 +39,7 @@ export default function ReviewsSection() {
       <div className="mx-auto max-w-6xl px-5 py-24 md:py-32">
         <Reveal>
           <div className="grid gap-7 md:grid-cols-[0.7fr_1.3fr] md:items-end">
-            <p className="section-kicker text-sage">Proof of movement</p>
+            <p className="section-kicker text-brand">Proof of movement</p>
             <div>
               <h2 className="max-w-3xl text-4xl font-bold leading-[0.98] md:text-6xl">
                 Good logistics leaves a different kind of trace.
@@ -56,8 +56,20 @@ export default function ReviewsSection() {
             <div className="review-track">
               {[...reviews, ...reviews].map((r, i) => (
                 <figure key={`${r.id}-${i}`} className="review-card relative flex w-[min(82vw,22rem)] shrink-0 flex-col rounded-2xl border border-line bg-white p-7 shadow-[0_20px_50px_-36px_rgba(20,23,15,0.4)] md:w-[25rem]">
-                  <span className="pointer-events-none absolute right-6 top-3 text-7xl font-bold leading-none text-sage-tint" aria-hidden="true">“</span>
+                  <span className="pointer-events-none absolute right-6 top-3 text-7xl font-bold leading-none text-brand-tint" aria-hidden="true">“</span>
                   <Stars n={r.stars} />
+                  {!!r.metrics?.length && (
+                    <ul className="mt-3 flex flex-wrap gap-1.5">
+                      {r.metrics.map((m) => (
+                        <li
+                          key={m}
+                          className="rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-ink-soft"
+                        >
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <blockquote className="mt-4 min-h-28 flex-1 text-sm leading-relaxed text-ink-soft">
                     &ldquo;{r.quote}&rdquo;
                   </blockquote>
