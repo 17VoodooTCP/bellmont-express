@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { LogoMark } from "@/components/Logo";
+import { warmApi } from "@/lib/wake";
 import {
   ALLOWED_ATTACHMENT_MIME,
   encodeAttachment,
@@ -56,6 +57,13 @@ const AGENT_TYPING_TTL_MS = 4500;
 /* Visitor typing is sent at most this often, and stops after this idle. */
 const TYPING_THROTTLE_MS = 2000;
 const TYPING_IDLE_MS = 1600;
+/* Once a message has reached the server, the assistant answers within a
+   second or two; if nothing arrives in this long, say so plainly. */
+const BOT_REPLY_TIMEOUT_MS = 20000;
+/* If the server never sends the conversation history after joining (older
+   server), send queued messages anyway after this long. */
+const JOIN_FALLBACK_MS = 1500;
+const SUPPORT_EMAIL = "support@bellmontexpress.com";
 
 /* The interim backend is shared with the legacy product. Rebrand its copy. */
 const rebrand = (m: Msg): Msg =>
@@ -166,6 +174,17 @@ export default function BellmontChat() {
      after a hand-over request, or when an agent joins. The assistant stops
      replying then, so we must not show it "typing". */
   const [humanMode, setHumanMode] = useState(false);
+  const humanModeRef = useRef(false);
+  useEffect(() => { humanModeRef.current = humanMode; }, [humanMode]);
+  /* The server could not be reached at all (asleep and never woke, or down). */
+  const [unreachable, setUnreachable] = useState(false);
+  /* Messages written before the conversation is joined wait here. Sending
+     them earlier would let the reply go to a room this visitor is not in
+     yet, and it would never show. */
+  const outboxRef = useRef<string[]>([]);
+  const joinedRef = useRef(false);
+  const joinFallback = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectingNoted = useRef(false);
   /* Socket handlers are registered once, so they read the agent's name
      through a ref rather than the (stale) state value. */
   const agentNameRef = useRef<string | null>(null);
@@ -226,6 +245,32 @@ export default function BellmontChat() {
     }, wait);
   };
 
+  const note = (message: string) =>
+    setMsgs((p) => [...p, { sender: "system", message, timestamp: new Date() }]);
+
+  /* The assistant is "typing" only once a message has actually reached the
+     server; never while we are still connecting. */
+  const startBotWait = () => {
+    botWaitStarted.current = Date.now();
+    setTypist({ kind: "bot" });
+    clearBotWait();
+    botWatchdog.current = setTimeout(() => {
+      setTypist((t) => (t?.kind === "bot" ? null : t));
+      note(`The assistant didn't answer. Please send your message again, or email ${SUPPORT_EMAIL}.`);
+    }, BOT_REPLY_TIMEOUT_MS);
+  };
+
+  const flushOutbox = () => {
+    if (joinFallback.current) { clearTimeout(joinFallback.current); joinFallback.current = null; }
+    joinedRef.current = true;
+    const s = socketRef.current;
+    const queued = outboxRef.current.splice(0);
+    if (!s || !queued.length) return;
+    connectingNoted.current = false; // explain again if a later reconnect is slow
+    queued.forEach((message) => s.emit("userMessage", { sessionId: sessionRef.current, message }));
+    if (!humanModeRef.current) startBotWait();
+  };
+
   // connect lazily the first time the panel opens
   useEffect(() => {
     if (!open || socketRef.current) return;
@@ -243,12 +288,23 @@ export default function BellmontChat() {
       body: JSON.stringify({ sessionId, userName: "Website Visitor" }),
     }).catch(() => {});
 
+    /* The free server sleeps when idle; start waking it the moment the chat
+       opens. If it cannot be reached at all, say so instead of waiting. */
+    warmApi().then((ok) => {
+      if (!ok && !socketRef.current?.connected) setUnreachable(true);
+    });
+
     const s = io(API_URL, { transports: ["websocket", "polling"] });
     socketRef.current = s;
 
     s.on("connect", () => {
       setConnected(true);
+      setUnreachable(false);
+      joinedRef.current = false;
       s.emit("joinSession", { sessionId });
+      // the history reply means we are in the room; this covers a server that never sends it
+      if (joinFallback.current) clearTimeout(joinFallback.current);
+      joinFallback.current = setTimeout(flushOutbox, JOIN_FALLBACK_MS);
     });
 
     /* A returning visitor may already be mid-hand-over; ask the server. */
@@ -261,9 +317,18 @@ export default function BellmontChat() {
         }
       })
       .catch(() => {});
-    s.on("disconnect", () => setConnected(false));
+    s.on("disconnect", () => {
+      setConnected(false);
+      joinedRef.current = false;
+      // a reply cannot arrive while disconnected; don't leave dots spinning
+      clearBotWait();
+      setTypist(null);
+    });
     s.on("sessionHistory", ({ messages }: { messages?: Msg[] }) => {
-      if (messages?.length) setMsgs(messages.map(rebrand));
+      /* Restore a returning visitor's conversation, but never replace
+         messages written in this visit (they may not be saved yet). */
+      if (messages?.length) setMsgs((p) => (p.some((m) => m.sender === "user") ? p : messages.map(rebrand)));
+      flushOutbox();
     });
     s.on("newMessage", (m: Msg & { sessionId?: string }) => {
       if (m.sessionId && m.sessionId !== sessionRef.current) return;
@@ -306,7 +371,11 @@ export default function BellmontChat() {
       timestamp: new Date(),
     }]));
 
-    return () => { s.disconnect(); socketRef.current = null; };
+    return () => {
+      if (joinFallback.current) clearTimeout(joinFallback.current);
+      s.disconnect();
+      socketRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -314,7 +383,7 @@ export default function BellmontChat() {
      "stopTyping" once they pause, send, or leave the box. */
   const signalTyping = () => {
     const s = socketRef.current;
-    if (!s || !sessionRef.current) return;
+    if (!s?.connected || !sessionRef.current) return;
     const now = Date.now();
     if (now - lastTypingSent.current > TYPING_THROTTLE_MS) {
       s.emit("typing", { sessionId: sessionRef.current, sender: "user" });
@@ -335,19 +404,22 @@ export default function BellmontChat() {
     if (!text || !s) return;
     stopSignal();
     setMsgs((p) => [...p, { sender: "user", message: text, timestamp: new Date() }]);
+
+    if (!s.connected || !joinedRef.current) {
+      /* Not connected yet: hold the message and send it once we are in the
+         conversation. Explain the wait once, honestly. */
+      outboxRef.current.push(text);
+      if (!connectingNoted.current) {
+        connectingNoted.current = true;
+        note(unreachable
+          ? `We can't reach support right now. Your message will send when we reconnect, or email ${SUPPORT_EMAIL}.`
+          : "Connecting to support. This can take up to a minute after a quiet spell; your message will send automatically.");
+      }
+      return;
+    }
+
     s.emit("userMessage", { sessionId: sessionRef.current, message: text });
-    if (!expectBotReply || humanMode) return;
-    botWaitStarted.current = Date.now();
-    setTypist({ kind: "bot" });
-    clearBotWait();
-    botWatchdog.current = setTimeout(() => {
-      setTypist((t) => (t?.kind === "bot" ? null : t));
-      setMsgs((p) => [...p, {
-        sender: "system",
-        message: "Our assistant is waking up. Give it a few seconds and send your message again, or email support@bellmontexpress.com.",
-        timestamp: new Date(),
-      }]);
-    }, 15000);
+    if (expectBotReply && !humanMode) startBotWait();
   };
 
   /* Quick actions and topics: links open the page (and close the sheet on
@@ -396,7 +468,7 @@ export default function BellmontChat() {
   };
 
   const status = !connected
-    ? "Connecting…"
+    ? unreachable ? `Offline · email ${SUPPORT_EMAIL}` : "Connecting to support…"
     : typist?.kind === "agent"
       ? `${typist.name} is typing…`
       : agentName
@@ -418,7 +490,7 @@ export default function BellmontChat() {
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       ) : (
-        <button onClick={() => setOpen(true)} aria-label="Open live chat" className="lc-bubble">
+        <button onClick={() => setOpen(true)} aria-label="Open live chat" className="lc-bubble notranslate" translate="no">
           <span className="lc-dot" aria-hidden="true" />
           <span className="lc-live">Live</span>
           <span className="lc-chat">Chat</span>

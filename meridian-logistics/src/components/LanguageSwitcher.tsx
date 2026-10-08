@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /* Google Translate stays invisible; we drive it through the googtrans
    cookie and reload. Only translated content ever appears. */
@@ -28,6 +29,10 @@ const LANGUAGES = [
   { code: "sw", country: "ke", label: "Kiswahili" },
 ];
 
+/* Flags are the open-source flag-icons set (MIT), drawn at a true 4:3 so
+   nothing is cropped or stretched; served from /public/flags. */
+const flagSrc = (country: string) => `/flags/${country}.svg`;
+
 const readCurrent = () => {
   const m = document.cookie.match(/googtrans=\/en\/([^;]+)/);
   const code = m ? decodeURIComponent(m[1]) : "en";
@@ -37,7 +42,9 @@ const readCurrent = () => {
 export default function LanguageSwitcher() {
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState(LANGUAGES[0]);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const code = readCurrent();
@@ -45,13 +52,41 @@ export default function LanguageSwitcher() {
     if (found) setCurrent(found);
   }, []);
 
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+  /* The nav bar clips its contents (overflow: hidden keeps its texture
+     inside the rounded corners), so the list renders in a layer on
+     <body> and is placed under the button. */
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const r = buttonRef.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
     };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, { passive: true });
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place);
+    };
+  }, [open]);
+
+  // close on an outside press or Escape; the list lives outside the button
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!buttonRef.current?.contains(t) && !listRef.current?.contains(t)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setOpen(false); buttonRef.current?.focus(); }
+    };
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   const pick = (lang: (typeof LANGUAGES)[number]) => {
     const host = location.hostname;
@@ -74,57 +109,47 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <>
       <button
+        ref={buttonRef}
+        type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Language: ${current.label}`}
-        className="flex items-center gap-2 rounded-full border border-line px-3 py-1.5 text-sm font-medium hover:border-ink transition-colors"
+        className="lang-button"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {/* SVG flags stay sharp at any pixel density; the old 20px PNGs were
-            being stretched on high-resolution screens and looked soft. */}
-        <img
-          src={`https://flagcdn.com/${current.country}.svg`}
-          alt=""
-          width={22}
-          height={16}
-          className="lang-flag"
-        />
+        <img src={flagSrc(current.country)} alt="" width={24} height={18} className="lang-flag" />
         <span className="lang-name notranslate hidden sm:inline">{current.label}</span>
       </button>
 
-      {open && (
+      {open && pos && createPortal(
         <ul
+          ref={listRef}
           role="listbox"
-          className="absolute right-0 top-full z-50 mt-2 max-h-80 w-52 overflow-y-auto rounded-xl border border-line bg-white py-2 shadow-xl"
+          aria-label="Choose a language"
+          className="lang-list"
+          style={{ top: pos.top, right: pos.right }}
         >
           {LANGUAGES.map((lang) => (
             <li key={lang.code}>
               <button
+                type="button"
                 role="option"
                 aria-selected={lang.code === current.code}
                 onClick={() => pick(lang)}
-                className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-brand-tint ${
-                  lang.code === current.code ? "font-semibold text-brand" : ""
-                }`}
+                className={`lang-option ${lang.code === current.code ? "lang-option--current" : ""}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`https://flagcdn.com/${lang.country}.svg`}
-                  alt=""
-                  width={22}
-                  height={16}
-                  loading="lazy"
-                  className="lang-flag"
-                />
+                <img src={flagSrc(lang.country)} alt="" width={24} height={18} loading="lazy" className="lang-flag" />
                 <span className="lang-name notranslate">{lang.label}</span>
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
