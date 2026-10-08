@@ -8,7 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { ChatBotService } from './chat-bot.service';
+import { ChatBotService, type BotContext } from './chat-bot.service';
 
 /* Event contract is identical to the legacy socket server, so both the
    Meridian chat widget and the admin console connect unchanged. */
@@ -95,8 +95,8 @@ export class ChatGateway {
 
     if (session.status !== 'bot') return;
 
-    const state = (session.context as { state?: string })?.state ?? 'greeting';
-    const reply = await this.bot.process(state, message);
+    const context = (session.context as BotContext | null) ?? {};
+    const reply = await this.bot.process(context, message);
 
     if (reply.newState === 'escalate_to_human') {
       await this.prisma.chatSession.update({
@@ -107,7 +107,7 @@ export class ChatGateway {
     } else {
       await this.prisma.chatSession.update({
         where: { sessionId },
-        data: { context: { state: reply.newState } },
+        data: { context: reply.newContext as Prisma.InputJsonValue },
       });
     }
 
@@ -176,14 +176,21 @@ export class ChatGateway {
     this.server.to('admin_room').emit('sessionUpdate', { sessionId: body.sessionId, status: 'closed', agentName });
   }
 
+  /* Typing is relayed to everyone else in the conversation. Visitor typing
+     also goes to the admin room, so agents see it in the session list before
+     they have taken over; the sessionId tells them which conversation. */
   @SubscribeMessage('typing')
-  typing(@ConnectedSocket() socket: Socket, @MessageBody() body: { sessionId: string; sender: string }) {
+  typing(@ConnectedSocket() socket: Socket, @MessageBody() body: { sessionId: string; sender: string; agentName?: string }) {
+    if (!body?.sessionId) return;
     socket.to(body.sessionId).emit('typing', body);
+    if (body.sender === 'user') socket.to('admin_room').emit('typing', body);
   }
 
   @SubscribeMessage('stopTyping')
   stopTyping(@ConnectedSocket() socket: Socket, @MessageBody() body: { sessionId: string; sender: string }) {
+    if (!body?.sessionId) return;
     socket.to(body.sessionId).emit('stopTyping', body);
+    if (body.sender === 'user') socket.to('admin_room').emit('stopTyping', body);
   }
 
   private isAttachment(message: string) {

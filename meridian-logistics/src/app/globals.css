@@ -770,3 +770,110 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
 .article-faq details[open] summary::after { transform: translateY(-50%) rotate(45deg); }
 .article-faq summary:focus-visible { outline: 2px solid #fca837; outline-offset: 4px; border-radius: 4px; }
 .article-faq details p { margin: 0 0 18px; color: #3f4a63; }
+
+/* ─── Live chat window ──────────────────────────────────────
+   White panel with isometric logistics line art (van, conveyor, parcels,
+   racks) in warm peach, sliding slowly behind the whole conversation; the
+   help-topic strip slides across the top. Iris (#586890) carries the
+   visitor's bubbles and the send button. */
+.lcw { background: #fff; color: #1e2950; font-family: var(--font-body), system-ui, sans-serif; }
+/* The art is one wide layer moved with transform (GPU-composited, no
+   repaint), exactly one tile per loop so the restart is seamless. */
+.lcw::before {
+  content: ""; position: absolute; inset: 0 auto 0 0; width: calc(100% + 560px); z-index: 0; pointer-events: none;
+  background: url("/chat/logistics-lines.svg") 0 0 / 560px 440px repeat;
+  animation: lcw-pan 48s linear infinite;
+}
+@keyframes lcw-pan { to { transform: translateX(-560px); } }
+.lcw > * { position: relative; z-index: 1; }
+/* Text that sits straight on the art gets a white halo so lines never cut
+   through letters; bubbles and chips are opaque and need none. */
+.lcw-head__name, .lcw-head__status, .lcw-head__title, .lcw-head__sub, .lcw-meta {
+  text-shadow: 0 0 2px #fff, 0 0 6px #fff, 0 0 12px #fff;
+}
+
+.lcw-head { flex-shrink: 0; padding: 16px 0 14px; border-bottom: 1px solid #f1e4d8; }
+
+.lcw-head__bar { display: flex; align-items: center; gap: 12px; padding: 0 16px; }
+.lcw-head__mark { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 14px; background: #fff; box-shadow: 0 6px 16px rgba(30, 41, 80, .10); }
+.lcw-head__name { font-family: var(--font-logo), var(--font-body), sans-serif; font-weight: 700; font-size: 1rem; color: #1e2950; }
+.lcw-head__status { display: flex; align-items: center; gap: 6px; margin-top: 1px; color: #6b7793; font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lcw-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, .18); flex-shrink: 0; }
+.lcw-dot--off { background: #b6bccb; box-shadow: none; }
+.lcw-head__close { margin-left: auto; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; color: #1e2950; background: rgba(255, 255, 255, .8); }
+
+.lcw-head__intro { max-height: 90px; overflow: hidden; padding: 14px 18px 0; transition: max-height .35s cubic-bezier(.22,1,.36,1), opacity .25s, padding .35s; }
+.lcw-head__title { font-family: var(--font-bricolage), var(--font-display), sans-serif; font-size: 1.55rem; font-weight: 800; letter-spacing: -.03em; line-height: 1.1; color: #1e2950; }
+.lcw-head__sub { margin-top: 4px; color: #5b6478; font-size: .85rem; }
+.lcw-head--compact { padding-top: 12px; padding-bottom: 10px; }
+.lcw-head--compact .lcw-head__intro { max-height: 0; opacity: 0; padding-top: 0; }
+
+/* Sliding topic strip: two identical sets move left together and the loop
+   restarts exactly one set-width along, so the seam is invisible. */
+.lcw-strip { margin-top: 12px; overflow: hidden; mask-image: linear-gradient(90deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%); }
+.lcw-strip__track { display: flex; width: max-content; animation: lcw-slide 34s linear infinite; }
+.lcw-strip:hover .lcw-strip__track, .lcw-strip:focus-within .lcw-strip__track { animation-play-state: paused; }
+.lcw-strip__set { display: flex; gap: 8px; padding-right: 8px; }
+@keyframes lcw-slide { to { transform: translateX(-50%); } }
+.lcw-chip { white-space: nowrap; padding: 7px 13px; border: 1px solid #dfe3ee; border-radius: 999px; background: rgba(255, 255, 255, .92); color: #1e2950; font-size: .8rem; font-weight: 600; transition: border-color .2s, background-color .2s, transform .2s; cursor: pointer; }
+.lcw-chip:hover { border-color: #586890; background: #fff; transform: translateY(-1px); }
+.lcw-chip:focus-visible { outline: 2px solid #586890; outline-offset: 2px; }
+
+/* Conversation */
+.lcw-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 14px 10px; display: flex; flex-direction: column; gap: 4px; }
+.lcw-row { display: flex; align-items: flex-end; gap: 8px; animation: lcw-in .32s cubic-bezier(.22,1,.36,1) both; }
+.lcw-row--mine { justify-content: flex-end; }
+@keyframes lcw-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.lcw-col { display: flex; flex-direction: column; max-width: 80%; }
+.lcw-row--mine .lcw-col { align-items: flex-end; }
+.lcw-avatar { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: #fff; border: 1px solid #ece6d6; margin-bottom: 18px; }
+.lcw-avatar--agent { background: #586890; border-color: #586890; color: #fff; font-size: .68rem; font-weight: 700; }
+.lcw-avatar-gap { width: 28px; flex-shrink: 0; }
+.lcw-bubble { padding: 9px 13px; border: 1px solid #ece6d6; border-radius: 18px 18px 18px 6px; background: #fff; color: #1e2950; font-size: .92rem; line-height: 1.45; box-shadow: 0 1px 2px rgba(30, 41, 80, .04); overflow-wrap: anywhere; }
+.lcw-bubble--mine { border-color: #586890; border-radius: 18px 18px 6px 18px; background: #586890; color: #fff; }
+.lcw-meta { margin: 4px 6px 10px; color: #8a90a0; font-size: .7rem; }
+.lcw-file { display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: underline; }
+.lcw-system { align-self: center; margin: 8px 0; padding: 5px 12px; border-radius: 999px; background: #f0ece1; color: #6b7793; font-size: .74rem; text-align: center; }
+
+.lcw-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 36px; animation: lcw-in .32s cubic-bezier(.22,1,.36,1) .05s both; }
+.lcw-chip--quick { border-color: #586890; color: #4a5880; background: #fff; }
+.lcw-chip--quick:hover { background: #586890; color: #fff; }
+
+/* Typing indicator: three dots that rise in turn */
+.lcw-bubble--typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+.lcw-bubble--typing span { width: 7px; height: 7px; border-radius: 50%; background: #8b97b8; animation: lcw-dot 1.2s ease-in-out infinite; }
+.lcw-bubble--typing span:nth-child(2) { animation-delay: .15s; }
+.lcw-bubble--typing span:nth-child(3) { animation-delay: .3s; }
+@keyframes lcw-dot { 0%, 60%, 100% { transform: translateY(0); opacity: .45; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+/* Composer: the box grows with the message; send wakes up when there is text */
+.lcw-composer { display: flex; align-items: flex-end; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid #ece6d6; background: #fff; }
+.lcw-icon-btn { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; color: #6b7793; transition: background-color .2s, color .2s; }
+.lcw-icon-btn:hover { background: #f4f2ec; color: #1e2950; }
+.lcw-field { flex: 1; min-width: 0; padding: 9px 14px; border: 1px solid transparent; border-radius: 20px; background: #f4f2ec; transition: border-color .2s, background-color .2s, box-shadow .2s; }
+.lcw-field:focus-within { border-color: #586890; background: #fff; box-shadow: 0 0 0 3px rgba(88, 104, 144, .14); }
+.lcw-input { display: block; width: 100%; max-height: 120px; resize: none; overflow-y: hidden; border: 0; outline: none; background: transparent; color: #1e2950; font-size: .92rem; line-height: 1.4; }
+.lcw-input::placeholder { color: #8a90a0; }
+.lcw-send { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: #586890; color: #fff; transition: transform .2s cubic-bezier(.22,1,.36,1), background-color .2s, opacity .2s; }
+.lcw-send:hover:not(:disabled) { background: #4a5880; }
+.lcw-send:disabled { opacity: .35; transform: scale(.88); cursor: default; }
+.lcw-send:focus-visible, .lcw-icon-btn:focus-visible { outline: 2px solid #586890; outline-offset: 2px; }
+
+/* Phones: full-screen sheet keeps the notch and home bar clear. */
+@media (max-width: 639px) {
+  .lcw-head { padding-top: calc(12px + env(safe-area-inset-top)); }
+  .lcw-composer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .lcw-input { font-size: 16px; }
+}
+
+/* Reduced motion: no drift, no slide (the strip scrolls by hand instead),
+   no entrance or dot animation. */
+@media (prefers-reduced-motion: reduce) {
+  .lcw::before { animation: none; }
+  .lcw-strip { overflow-x: auto; mask-image: none; }
+  .lcw-strip__track { animation: none; }
+  .lcw-strip__set[aria-hidden="true"] { display: none; }
+  .lcw-row, .lcw-quick { animation: none; }
+  .lcw-bubble--typing span { animation: none; opacity: .7; }
+  .lcw-head__intro, .lcw-chip, .lcw-send, .lcw-field { transition: none; }
+}

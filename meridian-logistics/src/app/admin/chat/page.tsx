@@ -50,6 +50,11 @@ export default function AdminChatPage() {
   const socketRef = useRef<Socket | null>(null);
   const activeRef = useRef<string>("");
   const endRef = useRef<HTMLDivElement>(null);
+  /* Visitors currently typing, by session. Entries expire on their own in
+     case a stopTyping event is lost (closed tab, dropped connection). */
+  const [typingSessions, setTypingSessions] = useState<Record<string, number>>({});
+  const lastTypingSent = useRef(0);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
@@ -63,7 +68,21 @@ export default function AdminChatPage() {
     s.on("disconnect", () => setConnected(false));
     s.on("newMessage", (m: ChatMsg & { sessionId?: string }) => {
       if (m.sessionId === activeRef.current) setMsgs((p) => [...p, m]);
+      if (m.sender === "user" && m.sessionId) {
+        const id = m.sessionId;
+        setTypingSessions(({ [id]: _gone, ...rest }) => rest);
+      }
       void listChatSessions().then(setSessions).catch(() => {});
+    });
+    s.on("typing", (b: { sessionId?: string; sender?: string }) => {
+      if (!b?.sessionId || b.sender !== "user") return;
+      const id = b.sessionId;
+      setTypingSessions((t) => ({ ...t, [id]: Date.now() + 5000 }));
+    });
+    s.on("stopTyping", (b: { sessionId?: string; sender?: string }) => {
+      if (!b?.sessionId || b.sender !== "user") return;
+      const id = b.sessionId;
+      setTypingSessions(({ [id]: _gone, ...rest }) => rest);
     });
     s.on("sessionUpdate", () => {
       void listChatSessions().then(setSessions).catch(() => {});
@@ -72,6 +91,36 @@ export default function AdminChatPage() {
     return () => { s.disconnect(); socketRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setTypingSessions((cur) => {
+        const now = Date.now();
+        const live = Object.fromEntries(Object.entries(cur).filter(([, until]) => until > now));
+        return Object.keys(live).length === Object.keys(cur).length ? cur : live;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* Let the visitor see the agent typing: throttled "typing", then
+     "stopTyping" after a pause, on send, or when the box loses focus. */
+  const signalTyping = () => {
+    if (!active) return;
+    const now = Date.now();
+    if (now - lastTypingSent.current > 2000) {
+      socketRef.current?.emit("typing", { sessionId: active.sessionId, sender: "admin" });
+      lastTypingSent.current = now;
+    }
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(stopSignal, 1600);
+  };
+  const stopSignal = () => {
+    if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null; }
+    if (!lastTypingSent.current || !active) return;
+    socketRef.current?.emit("stopTyping", { sessionId: active.sessionId, sender: "admin" });
+    lastTypingSent.current = 0;
+  };
 
   const open = async (session: ChatSessionSummary) => {
     setActive(session);
@@ -90,6 +139,7 @@ export default function AdminChatPage() {
     const t = input.trim();
     if (!t || !active) return;
     setInput("");
+    stopSignal();
     socketRef.current?.emit("adminMessage", { sessionId: active.sessionId, message: t });
   };
 
@@ -165,6 +215,9 @@ export default function AdminChatPage() {
               >
                 {s.status === "human" ? "LIVE AGENT" : s.status === "closed" ? "CLOSED" : "BOT"}
               </span>
+              {typingSessions[s.sessionId] && (
+                <span className="ml-2 text-[11px] font-medium italic text-brand">typing…</span>
+              )}
             </button>
           ))}
         </div>
@@ -217,6 +270,16 @@ export default function AdminChatPage() {
                     </div>
                   )
                 )}
+                {typingSessions[current.sessionId] && (
+                  <div className="flex items-center gap-2 text-[12px] text-ink-mute" aria-live="polite">
+                    <span className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-brand-tint px-3 py-2.5" aria-hidden="true">
+                      {[0, 1, 2].map((d) => (
+                        <span key={d} className="h-1.5 w-1.5 animate-bounce rounded-full bg-brand-soft" style={{ animationDelay: `${d * 0.15}s` }} />
+                      ))}
+                    </span>
+                    Customer is typing
+                  </div>
+                )}
                 <div ref={endRef} />
               </div>
 
@@ -243,7 +306,8 @@ export default function AdminChatPage() {
                   </label>
                   <input
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onChange={(e) => { setInput(e.target.value); signalTyping(); }}
+                    onBlur={stopSignal}
                     placeholder="Type here"
                     aria-label="Reply"
                     className="flex-1 rounded-full border border-line px-4 py-2.5 text-sm outline-none focus:border-ink"

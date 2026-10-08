@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   trackShipment,
   Shipment,
@@ -143,20 +143,36 @@ export default function TrackingExperience() {
   const [error, setError] = useState("");
   const warmth = useApiWarmth();
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id.trim()) return;
+  const lookup = async (value: string) => {
+    if (!value.trim()) return;
     setLoading(true);
     setError("");
     setShipment(null);
     try {
-      setShipment(await trackShipment(id.trim().toUpperCase()));
+      setShipment(await trackShipment(value.trim().toUpperCase()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void lookup(id);
+  };
+
+  /* /tracking?id=CP123456785US (the chat assistant links here) opens with the
+     shipment already looked up. Read from location rather than
+     useSearchParams so the page can stay statically prerendered. */
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("id");
+    if (fromUrl) {
+      setId(fromUrl.toUpperCase());
+      void lookup(fromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const eta = useMemo(() => {
     if (!shipment?.estimatedDelivery) return null;
