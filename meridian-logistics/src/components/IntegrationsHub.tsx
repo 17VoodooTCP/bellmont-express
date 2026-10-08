@@ -11,10 +11,12 @@
    query parks them. */
 
 import { INTEGRATION_LOGOS } from "./integrationLogos";
+import { MARK_PATHS } from "./Logo";
 
 const VB_W = 1000;
 const VB_H = 560;
 const HUB = { x: 500, y: 280, r: 54 };
+const MARK_SCALE = (HUB.r * 2) / 84;
 const CARD = 92;
 const COL_LEFT = 120;
 const COL_RIGHT = VB_W - COL_LEFT;
@@ -143,27 +145,14 @@ export default function IntegrationsHub() {
               </g>
             ))}
 
-            {/* the Bellmont mark at the centre */}
-            <g className="integrations-hub">
-              <rect
-                x={HUB.x - HUB.r}
-                y={HUB.y - HUB.r}
-                width={HUB.r * 2}
-                height={HUB.r * 2}
-                rx="28"
-                fill="#fca837"
-              />
-              <text
-                x={HUB.x}
-                y={HUB.y + 2}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="integrations-hub-mark"
-                fill="#ffffff"
-              >
-                B
-              </text>
-            </g>
+            {/* The Bellmont badge at the centre: the same drawing as the logo
+                and favicon. Its 128x100 artwork is scaled so the badge (84
+                units tall) matches the hub's diameter, centred on the hub. */}
+            <g
+              className="integrations-hub"
+              transform={`translate(${HUB.x - 64 * MARK_SCALE} ${HUB.y - 50 * MARK_SCALE}) scale(${MARK_SCALE})`}
+              dangerouslySetInnerHTML={{ __html: MARK_PATHS }}
+            />
           </svg>
         </div>
       </div>

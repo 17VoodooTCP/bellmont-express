@@ -12,7 +12,8 @@ const WORDMARK = "#49629d";
 /* Drawn in a 128x100 box. The badge and the letter share one group that is
    skewed 12 degrees, so the B leans with the badge; the translate re-centres
    the shear around the badge's middle. */
-const MARK_PATHS = `
+/* Exported so the integrations hub draws the identical badge. */
+export const MARK_PATHS = `
   <g transform="translate(10.6 0) skewX(-12)">
     <rect x="16" y="8" width="96" height="84" rx="22" fill="${BADGE}"/>
     <path d="M50 28V72M50 28H64C71 28 75 32 75 38.5C75 45 71 49 64 49H50M50 49H67C74.5 49 79 53.5 79 60.5C79 67.5 74.5 72 67 72H50"

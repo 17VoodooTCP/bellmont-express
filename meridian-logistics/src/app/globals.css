@@ -479,8 +479,7 @@ font[style] { background-color: transparent !important; box-shadow: none !import
 }
 .integrations-card:hover rect { transform: translateY(-4px) scale(1.04); }
 .integrations-wordmark { font-family: var(--font-display), var(--font-body), sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
-.integrations-hub rect { filter: drop-shadow(0 14px 30px rgba(252, 168, 55, .42)); }
-.integrations-hub-mark { font-family: var(--font-display), var(--font-body), sans-serif; font-size: 46px; font-weight: 800; }
+.integrations-hub { filter: drop-shadow(0 14px 30px rgba(246, 162, 58, .42)); }
 
 @keyframes integrations-travel { from { offset-distance: 0%; } to { offset-distance: 100%; } }
 .integrations-dot {
