@@ -15,6 +15,7 @@ import {
 } from "@/lib/adminApi";
 import type { Invoice, Shipment } from "@/lib/api";
 import { STATUS_LABEL } from "@/lib/api";
+import { openTrackingReceipt } from "@/lib/trackingReceipt";
 
 const STATUSES = Object.keys(STATUS_LABEL) as Shipment["status"][];
 const FEE_TYPES = [
@@ -69,6 +70,7 @@ export default function AdminDashboard() {
   const [editing, setEditing] = useState<Partial<Shipment> & { _id?: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [fee, setFee] = useState({ amount: "", description: "", type: "shipping_fee" });
+  const [receiptShipment, setReceiptShipment] = useState<AdminShipment | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -123,10 +125,18 @@ export default function AdminDashboard() {
         body.currentLocation?.city?.trim()
           ? await geocodeIfNeeded(body.currentLocation)
           : body.origin;
-      if (editing._id) await updateShipment(editing._id, body);
-      else await createShipment(body);
+      const isNew = !editing._id;
+      const result = editing._id
+        ? await updateShipment(editing._id, body)
+        : await createShipment(body);
+      const saved = result.shipment;
+      setShipments((list) =>
+        isNew
+          ? [saved, ...list]
+          : list.map((shipment) => (shipment._id === saved._id ? saved : shipment))
+      );
+      if (isNew) setReceiptShipment(saved);
       setEditing(null);
-      void refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -183,6 +193,29 @@ export default function AdminDashboard() {
       </div>
 
       {error && <p role="alert" className="mt-6 rounded-xl bg-brand-tint px-4 py-3 text-sm text-brand-deep">{error}</p>}
+      {receiptShipment && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-brand/25 bg-brand-tint px-5 py-4">
+          <p className="text-sm text-ink-soft">
+            <span className="font-semibold text-ink">Shipment {receiptShipment.trackingId} created.</span>{" "}
+            Print the tracking receipt while the record is fresh.
+          </p>
+          <span className="flex items-center gap-3">
+            <button
+              onClick={() => void openTrackingReceipt(receiptShipment)}
+              className="rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand"
+            >
+              Print tracking receipt
+            </button>
+            <button
+              onClick={() => setReceiptShipment(null)}
+              className="text-sm font-medium text-ink-mute hover:text-ink"
+              aria-label="Dismiss receipt reminder"
+            >
+              Dismiss
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* shipments table */}
       <div className="mt-8 overflow-x-auto rounded-2xl border border-line">
@@ -225,6 +258,12 @@ export default function AdminDashboard() {
                     : <span className="text-ink-mute">None</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => void openTrackingReceipt(s)}
+                    className="mr-3 text-xs font-semibold text-brand hover:underline"
+                  >
+                    Print receipt
+                  </button>
                   <button onClick={() => setEditing({ ...s })} className="mr-3 text-xs font-semibold text-brand hover:underline">Edit</button>
                   <button
                     onClick={() => { if (confirm(`Delete ${s.trackingId}?`)) deleteShipment(s._id).then(refresh); }}
@@ -252,6 +291,7 @@ export default function AdminDashboard() {
               {([
                 ["Tracking ID", "trackingId"],
                 ["Sender name", "senderName"],
+                ["Sender address", "senderAddress"],
                 ["Receiver name", "receiverName"],
                 ["Receiver address", "receiverAddress"],
                 ["Package type", "packageType"],
