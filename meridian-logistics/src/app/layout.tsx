@@ -47,13 +47,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   title: "Bellmont Express | The Future of Freight",
   description:
-    "Bellmont Express moves the world's cargo: ocean, air, road and rail freight with live tracking, one platform, zero friction.",
+    "Bellmont Express moves the world's cargo: ocean, air, road and rail freight with shipment tracking, one platform, zero friction.",
   openGraph: {
     url: "https://bellmontexpress.com",
     siteName: "Bellmont Express",
     title: "Bellmont Express | The Future of Freight",
     description:
-      "Ocean, air, road and rail freight with live tracking. One platform. Zero friction.",
+      "Ocean, air, road and rail freight with shipment tracking. One platform. Zero friction.",
     type: "website",
   },
 };

@@ -187,7 +187,7 @@ export default function TrackingExperience() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 pb-28 pt-32">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Live tracking</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Shipment tracking</p>
       <h1 className="mt-4 text-4xl font-bold md:text-6xl">Where is my cargo?</h1>
 
       <form onSubmit={submit} className="mt-10 flex max-w-xl overflow-hidden rounded-full border border-line focus-within:border-ink">

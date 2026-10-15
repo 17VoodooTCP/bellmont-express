@@ -1,6 +1,6 @@
 "use client";
 
-/* Live chat for visitors.
+/* Chat for visitors.
 
    Header: a cream panel with faint route lines and a sliding strip of help
    topics (each one starts that conversation). It compacts once the visitor
@@ -484,21 +484,26 @@ export default function BellmontChat() {
       {open ? (
         <button
           onClick={() => setOpen(false)}
-          aria-label="Close support chat"
-          className="fixed bottom-5 right-5 z-50 hidden h-14 w-14 sm:flex items-center justify-center rounded-full bg-[#1e2950] text-white shadow-[0_12px_30px_rgba(30,41,80,.3)] transition-transform hover:scale-105"
+          aria-label="Close chat"
+          className="lc-icon lc-icon--close"
         >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+          <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
         </button>
       ) : (
-        <button onClick={() => setOpen(true)} aria-label="Open live chat" className="lc-bubble notranslate" translate="no">
-          <span className="lc-dot" aria-hidden="true" />
-          <span className="lc-live">Live</span>
-          <span className="lc-chat">Chat</span>
+        <button onClick={() => setOpen(true)} aria-label="Open chat: what's your question?" className="lc-launcher">
+          <span className="lc-question" aria-hidden="true">What&apos;s your question?</span>
+          <span className="lc-icon" aria-hidden="true">
+            {/* chat bubble with a message panel inside */}
+            <svg viewBox="0 0 32 32" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinejoin="round">
+              <path d="M7 5h18a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H14l-6 5v-5H7a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" />
+              <rect x="9.5" y="10.5" width="13" height="7" rx="1.2" />
+            </svg>
+          </span>
         </button>
       )}
 
       {open && (
-        <div className="chat-sheet lcw fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden sm:inset-auto sm:bottom-24 sm:right-5 sm:h-[600px] sm:max-h-[calc(100dvh-8rem)] sm:w-[min(400px,calc(100vw-2.5rem))] sm:rounded-[1.35rem] sm:border sm:border-line sm:shadow-2xl" role="dialog" aria-label="Live chat">
+        <div className="chat-sheet lcw fixed inset-0 z-50 flex h-[100dvh] w-full flex-col overflow-hidden sm:inset-auto sm:bottom-24 sm:right-5 sm:h-[600px] sm:max-h-[calc(100dvh-8rem)] sm:w-[min(400px,calc(100vw-2.5rem))] sm:rounded-[1.35rem] sm:border sm:border-line sm:shadow-2xl" role="dialog" aria-label="Chat with Bellmont Express">
           <header className={`chat-sheet__header lcw-head ${started ? "lcw-head--compact" : ""}`}>
             <div className="lcw-head__bar">
               <span className="lcw-head__mark"><LogoMark size={26} /></span>
@@ -509,7 +514,7 @@ export default function BellmontChat() {
                   {status}
                 </p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close live chat" className="lcw-head__close sm:hidden">
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="lcw-head__close sm:hidden">
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
             </div>

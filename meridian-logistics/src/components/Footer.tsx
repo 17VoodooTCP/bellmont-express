@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const COLS = [
   {
@@ -64,7 +65,7 @@ export default function Footer() {
             <span className="notranslate"><Logo size={28} /></span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-mute">
               Moving the world&rsquo;s cargo across ocean, air, road and rail,
-              with live visibility on every mile.
+              with clear visibility on every mile.
             </p>
             <a
               href="mailto:support@bellmontexpress.com"
@@ -110,9 +111,12 @@ export default function Footer() {
             </nav>
           ))}
         </div>
-        <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-line pt-6 text-xs text-ink-mute md:flex-row md:items-center">
-          <p>© {new Date().getFullYear()} Bellmont Express · bellmontexpress.com</p>
-          <p className="notranslate">Ocean · Air · Road · Rail</p>
+        <div className="mt-14 flex flex-col-reverse items-start justify-between gap-8 border-t border-line pt-8 md:flex-row md:items-end">
+          <div className="space-y-1.5 text-xs text-ink-mute">
+            <p>© {new Date().getFullYear()} Bellmont Express · bellmontexpress.com</p>
+            <p className="notranslate">Ocean · Air · Road · Rail</p>
+          </div>
+          <LanguageSwitcher />
         </div>
       </div>
     </footer>

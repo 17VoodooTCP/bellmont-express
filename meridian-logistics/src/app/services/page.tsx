@@ -3,16 +3,16 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Services | Bellmont Express",
-  description: "Ocean, air, road and rail freight, warehousing and express delivery. One contract, live visibility.",
+  description: "Ocean, air, road and rail freight, warehousing and express delivery. One contract, full visibility.",
 };
 
 const SERVICES = [
   { title: "Ocean Freight", detail: "FCL and LCL across 180 ports. Container-level tracking from gate-in to discharge, customs pre-clearance, and reefer monitoring for temperature-sensitive cargo." },
   { title: "Air Freight", detail: "Time-critical capacity on scheduled and charter uplift. Door-to-door in as little as 41 hours, with priority handling for medical, aerospace and perishable freight." },
-  { title: "Road Freight", detail: "FTL and LTL networks across 40 countries with live telematics on every trailer: position, temperature, and door events streamed to your dashboard." },
+  { title: "Road Freight", detail: "FTL and LTL networks across 40 countries with telematics on every trailer: position, temperature, and door events reported to your dashboard." },
   { title: "Rail Freight", detail: "Low-carbon intermodal corridors linking inland terminals to every major port. Up to 76% emissions reduction versus road on comparable lanes." },
-  { title: "Warehousing", detail: "Bonded and ambient facilities in 12 gateway cities, with real-time inventory, cross-docking, and same-day fulfilment integrations." },
-  { title: "Express Delivery", detail: "Final-mile fleets in 60 metro areas. Live courier tracking, photo proof of delivery, and two-hour delivery windows your customers can trust." },
+  { title: "Warehousing", detail: "Bonded and ambient facilities in 12 gateway cities, with accurate inventory, cross-docking, and same-day fulfilment integrations." },
+  { title: "Express Delivery", detail: "Final-mile fleets in 60 metro areas. Courier tracking, photo proof of delivery, and two-hour delivery windows your customers can trust." },
 ];
 
 export default function ServicesPage() {

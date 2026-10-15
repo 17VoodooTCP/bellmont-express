@@ -69,5 +69,5 @@ export const body: Block[] = [
   { p: "No carrier is best on every route. FedEx may be the strongest choice for some lanes and services, while another carrier is cheaper or faster elsewhere. Compare carriers using delivered cost and on-time performance on your own routes, and review the comparison regularly as rates change." },
 
   { h: "Where Bellmont helps" },
-  { p: "Bellmont shows FedEx rates and delivery dates alongside other carriers for each shipment, applies your shipping rules automatically, and tracks every handoff on one live record, so you can choose the right service with confidence." },
+  { p: "Bellmont shows FedEx rates and delivery dates alongside other carriers for each shipment, applies your shipping rules automatically, and tracks every handoff on one shared record, so you can choose the right service with confidence." },
 ];

@@ -177,7 +177,7 @@ export default function AdminChatPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Bellmont Express Admin</p>
           <h1 className="mt-2 flex items-center gap-3 text-3xl font-bold">
-            Live chat
+            Support chat
             <span className={`h-2.5 w-2.5 rounded-full ${connected ? "bg-green-500" : "bg-line"}`} aria-label={connected ? "Connected" : "Disconnected"} />
           </h1>
         </div>
@@ -213,7 +213,7 @@ export default function AdminChatPage() {
                       : "bg-brand-tint text-brand-deep"
                 }`}
               >
-                {s.status === "human" ? "LIVE AGENT" : s.status === "closed" ? "CLOSED" : "BOT"}
+                {s.status === "human" ? "AGENT" : s.status === "closed" ? "CLOSED" : "BOT"}
               </span>
               {typingSessions[s.sessionId] && (
                 <span className="ml-2 text-[11px] font-medium italic text-brand">typing…</span>
@@ -318,7 +318,7 @@ export default function AdminChatPage() {
                 </form>
               ) : current.status === "bot" ? (
                 <p className="border-t border-line px-5 py-3.5 text-center text-xs text-ink-mute">
-                  The bot is handling this conversation. Take over to reply as a live agent.
+                  The bot is handling this conversation. Take over to reply as an agent.
                 </p>
               ) : (
                 <p className="border-t border-line px-5 py-3.5 text-center text-xs text-ink-mute">

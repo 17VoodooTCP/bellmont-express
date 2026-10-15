@@ -183,7 +183,7 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
         const vesselMarker = stage
           ? L.marker([o.lat, o.lng], { icon: vessel, zIndexOffset: 500 })
               .addTo(map)
-              .bindPopup(`<b>Live position</b><br>${escapeHtml(stageLabel)}`)
+              .bindPopup(`<b>Current position</b><br>${escapeHtml(stageLabel)}`)
           : null;
 
         const settle = () => {
@@ -217,7 +217,7 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
       } else if (stage) {
         L.marker([stage.lat, stage.lng], { icon: vessel, zIndexOffset: 500 })
           .addTo(map)
-          .bindPopup(`<b>Live position</b><br>${escapeHtml(stageLabel)}`);
+          .bindPopup(`<b>Current position</b><br>${escapeHtml(stageLabel)}`);
       }
 
       map.fitBounds(L.latLngBounds(pts.map((p) => [p.lat, p.lng])), { padding: [46, 46] });
@@ -241,9 +241,9 @@ export default function RouteMap({ shipment }: { shipment: Shipment }) {
 
   return (
     <div className="relative overflow-hidden rounded-2xl bg-[#eef1fa]">
-      <div ref={box} className="h-[420px] w-full overflow-hidden rounded-2xl" aria-label="Live shipment map" />
+      <div ref={box} className="h-[420px] w-full overflow-hidden rounded-2xl" aria-label="Shipment map" />
       <div className="pointer-events-none absolute left-4 top-4 rounded-xl border border-white/80 bg-white/90 px-3 py-2 shadow-sm backdrop-blur">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#fca837]">Live position</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#fca837]">Current position</p>
         <p className="mt-0.5 text-xs font-semibold text-[#1e2950]">{stageLabel}</p>
       </div>
 

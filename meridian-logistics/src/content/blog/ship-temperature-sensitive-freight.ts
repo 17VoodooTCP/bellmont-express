@@ -163,9 +163,9 @@ export const body: Block[] = [
     caption: "Temperature monitoring options",
     head: ["Option", "What you learn", "Best for"],
     rows: [
-      ["Single-use data loggers", "The full temperature history, read after delivery", "Testing pack-outs and spot-checking live shipments"],
+      ["Single-use data loggers", "The full temperature history, read after delivery", "Testing pack-outs and spot-checking shipments in transit"],
       ["Reusable loggers", "The same, at lower cost per reading if recovered", "Regular testing on routes where loggers can be returned"],
-      ["Real-time trackers", "Temperature and location during transit", "High-value shipments where you would act on a mid-route alert"],
+      ["Connected trackers", "Temperature and location during transit", "High-value shipments where you would act on a mid-route alert"],
       ["Temperature indicators", "Whether a threshold was crossed, without a full history", "Low-cost reassurance for the recipient"],
     ],
   } },

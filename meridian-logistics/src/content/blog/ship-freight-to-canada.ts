@@ -70,5 +70,5 @@ export const body: Block[] = [
   ] },
 
   { h: "Where Bellmont helps" },
-  { p: "Bellmont tracks every handoff, including customs milestones, on one live record, so you can see a shipment waiting at the border while there is still time to resolve a document question." },
+  { p: "Bellmont tracks every handoff, including customs milestones, on one shared record, so you can see a shipment waiting at the border while there is still time to resolve a document question." },
 ];

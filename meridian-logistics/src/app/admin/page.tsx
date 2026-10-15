@@ -162,7 +162,7 @@ export default function AdminDashboard() {
             Letter builder
           </Link>
           <Link href="/admin/chat" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">
-            Live chat
+            Support chat
           </Link>
           <Link href="/admin/reviews" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">
             Reviews

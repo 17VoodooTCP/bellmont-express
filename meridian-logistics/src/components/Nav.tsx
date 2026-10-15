@@ -5,7 +5,6 @@ import { warmOnIntent } from "@/components/ApiWarmth";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
-import LanguageSwitcher from "./LanguageSwitcher";
 import NavIntro from "./NavIntro";
 
 /* Kept short so the bar reads cleanly and leaves room for the arrival
@@ -81,7 +80,6 @@ export default function Nav() {
         <span aria-hidden="true" className="nav-divider hidden lg:block" />
 
         <div className="flex items-center gap-3 justify-self-end">
-          <LanguageSwitcher />
           <Link
             href="/tracking"
             {...warmOnIntent}

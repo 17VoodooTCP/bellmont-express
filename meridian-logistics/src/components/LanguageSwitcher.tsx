@@ -1,155 +1,106 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 
 /* Google Translate stays invisible; we drive it through the googtrans
-   cookie and reload. Only translated content ever appears. */
+   cookie and reload. Only translated content ever appears.
+
+   Shown in the footer as a region line (globe + country) above a plain,
+   square-cornered language box. The box is a native <select>, so it works
+   with the keyboard, screen readers and phone pickers out of the box. */
 
 const LANGUAGES = [
-  { code: "en", country: "us", label: "English" },
-  { code: "es", country: "es", label: "Español" },
-  { code: "fr", country: "fr", label: "Français" },
-  { code: "de", country: "de", label: "Deutsch" },
-  { code: "pt", country: "br", label: "Português" },
-  { code: "it", country: "it", label: "Italiano" },
-  { code: "nl", country: "nl", label: "Nederlands" },
-  { code: "zh-CN", country: "cn", label: "中文" },
-  { code: "ja", country: "jp", label: "日本語" },
-  { code: "ko", country: "kr", label: "한국어" },
-  { code: "ar", country: "sa", label: "العربية" },
-  { code: "hi", country: "in", label: "हिन्दी" },
-  { code: "ru", country: "ru", label: "Русский" },
-  { code: "tr", country: "tr", label: "Türkçe" },
-  { code: "pl", country: "pl", label: "Polski" },
-  { code: "sv", country: "se", label: "Svenska" },
-  { code: "vi", country: "vn", label: "Tiếng Việt" },
-  { code: "th", country: "th", label: "ไทย" },
-  { code: "id", country: "id", label: "Bahasa" },
-  { code: "sw", country: "ke", label: "Kiswahili" },
+  { code: "en", label: "English" },
+  { code: "es", label: "Español" },
+  { code: "fr", label: "Français" },
+  { code: "de", label: "Deutsch" },
+  { code: "pt", label: "Português" },
+  { code: "it", label: "Italiano" },
+  { code: "nl", label: "Nederlands" },
+  { code: "zh-CN", label: "中文" },
+  { code: "ja", label: "日本語" },
+  { code: "ko", label: "한국어" },
+  { code: "ar", label: "العربية" },
+  { code: "hi", label: "हिन्दी" },
+  { code: "ru", label: "Русский" },
+  { code: "tr", label: "Türkçe" },
+  { code: "pl", label: "Polski" },
+  { code: "sv", label: "Svenska" },
+  { code: "vi", label: "Tiếng Việt" },
+  { code: "th", label: "ไทย" },
+  { code: "id", label: "Bahasa Indonesia" },
+  { code: "sw", label: "Kiswahili" },
 ];
 
-/* Flags are the open-source flag-icons set (MIT), drawn at a true 4:3 so
-   nothing is cropped or stretched; served from /public/flags. */
-const flagSrc = (country: string) => `/flags/${country}.svg`;
+const REGION = "United States";
 
 const readCurrent = () => {
   const m = document.cookie.match(/googtrans=\/en\/([^;]+)/);
-  const code = m ? decodeURIComponent(m[1]) : "en";
-  return code === "en" ? "en" : code;
+  return m ? decodeURIComponent(m[1]) : "en";
+};
+
+const applyLanguage = (code: string) => {
+  const host = location.hostname;
+  // Google scatters googtrans across domain scopes; overwrite every scope.
+  // "/en/en" (English) reliably restores the original text where deleting fails.
+  const value = `/en/${code}`;
+  const scopes = ["", `;domain=${host}`, `;domain=.${host}`];
+  const root = host.split(".").slice(-2).join(".");
+  if (root !== host) scopes.push(`;domain=.${root}`);
+  for (const scope of scopes) {
+    if (code === "en") document.cookie = `googtrans=;path=/${scope};max-age=0`;
+    document.cookie = `googtrans=${value};path=/${scope}`;
+  }
+  if (code === "en" && location.hash.includes("googtrans")) history.replaceState(null, "", location.pathname + location.search);
+  location.reload();
 };
 
 export default function LanguageSwitcher() {
-  const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState(LANGUAGES[0]);
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
+  const [current, setCurrent] = useState("en");
+  const selectRef = useRef<HTMLSelectElement>(null);
 
+  // the cookie only exists in the browser, so read it after mounting
   useEffect(() => {
     const code = readCurrent();
-    const found = LANGUAGES.find((l) => l.code === code);
-    if (found) setCurrent(found);
+    if (LANGUAGES.some((l) => l.code === code)) setCurrent(code);
   }, []);
 
-  /* The nav bar clips its contents (overflow: hidden keeps its texture
-     inside the rounded corners), so the list renders in a layer on
-     <body> and is placed under the button. */
-  useLayoutEffect(() => {
-    if (!open) return;
-    const place = () => {
-      const r = buttonRef.current?.getBoundingClientRect();
-      if (r) setPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
-    };
-    place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, { passive: true });
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place);
-    };
-  }, [open]);
-
-  // close on an outside press or Escape; the list lives outside the button
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!buttonRef.current?.contains(t) && !listRef.current?.contains(t)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setOpen(false); buttonRef.current?.focus(); }
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  const pick = (lang: (typeof LANGUAGES)[number]) => {
-    const host = location.hostname;
-    // Google scatters googtrans across domain scopes; overwrite every scope.
-    // "/en/en" (English) reliably restores the original text where deleting fails.
-    const value = `/en/${lang.code}`;
-    const scopes = ["", `;domain=${host}`, `;domain=.${host}`];
-    const root = host.split(".").slice(-2).join(".");
-    if (root !== host) scopes.push(`;domain=.${root}`);
-    for (const scope of scopes) {
-      if (lang.code === "en") {
-        document.cookie = `googtrans=;path=/${scope};max-age=0`;
-      }
-      document.cookie = `googtrans=${value};path=/${scope}`;
-    }
-    if (lang.code === "en" && location.hash.includes("googtrans")) {
-      location.hash = "";
-    }
-    location.reload();
+  /* The region line opens the same list. showPicker() opens a native
+     select where supported; elsewhere focusing it is the next best thing. */
+  const openPicker = () => {
+    const el = selectRef.current;
+    if (!el) return;
+    el.focus();
+    try { el.showPicker?.(); } catch { /* not allowed or not supported */ }
   };
 
   return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={`Language: ${current.label}`}
-        className="lang-button"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={flagSrc(current.country)} alt="" width={24} height={18} className="lang-flag" />
-        <span className="lang-name notranslate hidden sm:inline">{current.label}</span>
+    <div className="lang-switch">
+      <button type="button" onClick={openPicker} className="lang-region">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.5" />
+          <ellipse cx="12" cy="12" rx="4.2" ry="9.5" />
+          <path d="M2.5 12h19M4 7h16M4 17h16" />
+        </svg>
+        <span className="notranslate">{REGION}</span>
       </button>
-
-      {open && pos && createPortal(
-        <ul
-          ref={listRef}
-          role="listbox"
-          aria-label="Choose a language"
-          className="lang-list"
-          style={{ top: pos.top, right: pos.right }}
+      <div className="lang-select-wrap">
+        <select
+          ref={selectRef}
+          value={current}
+          onChange={(e) => { setCurrent(e.target.value); applyLanguage(e.target.value); }}
+          aria-label="Language"
+          className="lang-select notranslate"
+          translate="no"
         >
-          {LANGUAGES.map((lang) => (
-            <li key={lang.code}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={lang.code === current.code}
-                onClick={() => pick(lang)}
-                className={`lang-option ${lang.code === current.code ? "lang-option--current" : ""}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={flagSrc(lang.country)} alt="" width={24} height={18} loading="lazy" className="lang-flag" />
-                <span className="lang-name notranslate">{lang.label}</span>
-              </button>
-            </li>
+          {LANGUAGES.map((l) => (
+            <option key={l.code} value={l.code}>{l.label}</option>
           ))}
-        </ul>,
-        document.body,
-      )}
-    </>
+        </select>
+        <svg className="lang-chevron" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M5 9l7 7 7-7" />
+        </svg>
+      </div>
+    </div>
   );
 }

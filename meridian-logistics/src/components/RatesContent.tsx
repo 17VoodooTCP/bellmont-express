@@ -8,7 +8,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 const features = [
-  ["01", "Shipping & Courier Management", "Access Bellmont's carrier network, live rates, and delivery management in one place."],
+  ["01", "Shipping & Courier Management", "Access Bellmont's carrier network, current rates, and delivery management in one place."],
   ["02", "Claim Management & Coverage", "File claims directly from the platform and replace the usual hassle with a streamlined workflow."],
   ["03", "Shipping Rules & Automations", "Set smart rules for any scenario and automate the shipping logic your operation needs."],
   ["04", "Auto Box Splitting Algorithm", "Automatically determine the ideal number of shipments for every order."],

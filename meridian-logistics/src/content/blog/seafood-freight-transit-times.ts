@@ -71,5 +71,5 @@ export const body: Block[] = [
   { p: "Improving these together, rather than cutting cost alone, is what lets a seafood business grow its reach without growing its complaints." },
 
   { h: "Where Bellmont helps" },
-  { p: "Bellmont compares services and delivery dates across carriers for every order and shows each shipment's handoffs on one live record, so a delayed box of seafood is visible while there is still time to act." },
+  { p: "Bellmont compares services and delivery dates across carriers for every order and shows each shipment's handoffs on one shared record, so a delayed box of seafood is visible while there is still time to act." },
 ];

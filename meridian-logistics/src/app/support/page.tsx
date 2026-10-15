@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const TOPICS = [
-  { title: "Track a shipment", copy: "Enter your tracking number to see the live map, milestones and journey log.", href: "/tracking", cta: "Open tracking" },
+  { title: "Track a shipment", copy: "Enter your tracking number to see the route map, milestones and journey log.", href: "/tracking", cta: "Open tracking" },
   { title: "Claims", copy: "Report loss or damage within 30 days of delivery. Most claims resolve in under 10 business days.", href: "mailto:support@bellmontexpress.com?subject=Claim", cta: "Start a claim" },
   { title: "Documentation", copy: "Bills of lading, customs paperwork, certificates of origin. Request certified copies for any shipment.", href: "mailto:support@bellmontexpress.com?subject=Documentation%20request", cta: "Request documents" },
   { title: "Billing", copy: "Questions about an invoice, payment terms, or consolidated statements for high-volume accounts.", href: "mailto:support@bellmontexpress.com?subject=Billing", cta: "Contact billing" },
@@ -26,7 +26,7 @@ export default function SupportPage() {
         <a href="mailto:support@bellmontexpress.com" className="notranslate font-semibold text-brand hover:underline">
           support@bellmontexpress.com
         </a>{" "}
-        or use live chat in the corner of every page.
+        or use the chat in the corner of every page.
       </p>
 
       <div className="mt-14 grid gap-5 sm:grid-cols-2">
@@ -44,7 +44,7 @@ export default function SupportPage() {
       <div className="mt-14 rounded-2xl bg-ocean p-7 text-sm text-ink-soft">
         <p className="font-semibold text-ink">Support hours</p>
         <p className="mt-1.5">
-          Live chat and email: 24/7. Phone escalations: Monday to Saturday, 07:00 to 22:00 in your
+          Chat and email: 24/7. Phone escalations: Monday to Saturday, 07:00 to 22:00 in your
           local gateway time zone.
         </p>
       </div>

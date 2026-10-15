@@ -113,7 +113,7 @@ export default async function ArticlePage(
           </div>
 
           <aside className="article-cta">
-            <p><b>Ship it with Bellmont.</b> Compare rates and see every handoff on one live record.</p>
+            <p><b>Ship it with Bellmont.</b> Compare rates and see every handoff on one shared record.</p>
             <div className="article-cta__actions">
               <Link href="/rates" className="hv2-btn hv2-btn-primary">Check rates <span aria-hidden="true">→</span></Link>
               <Link href="/book-demo" className="hv2-btn hv2-btn-ghost">Book a demo</Link>

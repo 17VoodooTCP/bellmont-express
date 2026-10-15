@@ -248,7 +248,7 @@ export class ChatBotService {
         );
       case 'delivery_times':
         return this.reply(
-          "It depends on the service and the distance: overnight and 2-day services are time-definite, while ground takes longer the further it travels. For an exact delivery date on your route, the rate calculator shows each option side by side. If you already shipped, send the tracking number for the live estimate.",
+          "It depends on the service and the distance: overnight and 2-day services are time-definite, while ground takes longer the further it travels. For an exact delivery date on your route, the rate calculator shows each option side by side. If you already shipped, send the tracking number for the latest estimate.",
           [ACT.rates, ACT.track], 'awaiting_choice', misses,
         );
       case 'contact':
@@ -284,7 +284,7 @@ export class ChatBotService {
     return this.reply(
       [...lines, note].filter(Boolean).join('\n'),
       [
-        { label: 'Open live tracking', value: `link:/tracking?id=${encodeURIComponent(s.trackingId)}` },
+        { label: 'Open tracking', value: `link:/tracking?id=${encodeURIComponent(s.trackingId)}` },
         s.status === 'on_hold' || s.status === 'delivered' ? ACT.person : { label: 'Track another', value: 'track_package' },
       ],
       'awaiting_choice',

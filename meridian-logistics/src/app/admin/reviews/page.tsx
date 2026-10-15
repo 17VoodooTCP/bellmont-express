@@ -146,7 +146,7 @@ export default function AdminReviewsPage() {
               >
                 Remove
               </button>
-              {savedId === r.id && <span className="text-sm font-medium text-green-600">Saved and live.</span>}
+              {savedId === r.id && <span className="text-sm font-medium text-green-600">Saved and published.</span>}
             </div>
           </div>
         ))}

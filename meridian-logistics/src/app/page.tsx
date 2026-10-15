@@ -13,7 +13,7 @@ const SERVICES = [
     number: "01",
     title: "Ocean Freight",
     eyebrow: "Deep water / 180 ports",
-    copy: "The long way around, made legible. Every container carries a live thread from gate-in to discharge.",
+    copy: "The long way around, made legible. Every container carries one unbroken thread from gate-in to discharge.",
     icon: (
       <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden="true">
         <path d="M4 28h32l-4 7H9z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
@@ -36,7 +36,7 @@ const SERVICES = [
     number: "03",
     title: "Road Freight",
     eyebrow: "Overland / 40 countries",
-    copy: "The last moving line on the map. Human dispatch, live telematics, and no silent miles.",
+    copy: "The last moving line on the map. Human dispatch, GPS telematics, and no silent miles.",
     icon: (
       <svg viewBox="0 0 40 40" className="h-9 w-9" aria-hidden="true">
         <rect x="4" y="14" width="20" height="12" rx="1.5" fill="none" stroke="currentColor" strokeWidth="2.4" />
@@ -62,7 +62,7 @@ const SERVICES = [
 
 const STATS = [
   { value: "180+", label: "ports in the visible network" },
-  { value: "1.2M", label: "containers given a live thread" },
+  { value: "1.2M", label: "containers tracked end to end" },
   { value: "40", label: "countries connected by road" },
   { value: "99.2%", label: "of journeys arriving on time" },
 ];
@@ -86,7 +86,7 @@ const PEOPLE = [
     id: "dispatch",
     caption: "Dispatch",
     title: "The network has a pulse",
-    body: "Crane operators, drivers, planners and agents work from the same living record across four modes and one moving world.",
+    body: "Crane operators, drivers, planners and agents work from the same shared record across four modes and one moving world.",
     image: "/media/dispatch-team.webp",
   },
   {
@@ -100,7 +100,7 @@ const PEOPLE = [
     id: "vessel",
     caption: "The long way around",
     title: "Distance, made legible",
-    body: "The ocean is only the first chapter. A live record keeps every next handoff in view until the journey becomes yours again.",
+    body: "The ocean is only the first chapter. One shared record keeps every next handoff in view until the journey becomes yours again.",
     image: "/media/cargo-inspector-realistic.png",
   },
 ];
@@ -175,7 +175,7 @@ export default function Home() {
             </p>
             <div className="mt-10 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.2em] text-ink-mute">
               <span className="h-px w-12 bg-brand" />
-              Twelve thousand people, one living record
+              Twelve thousand people, one shared record
             </div>
           </Reveal>
           <Reveal delay={0.1}>

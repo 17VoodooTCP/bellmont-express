@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 const STEPS = [
   { id: "track", label: "Track", title: "See the whole journey", copy: "Type a reference, then watch every handoff resolve into one clear route.", icon: "⌁" },
-  { id: "route", label: "Route", title: "Follow it in real time", copy: "Origin, current position and destination stay together on one live record.", icon: "↗" },
+  { id: "route", label: "Route", title: "Follow every handoff", copy: "Origin, current position and destination stay together on one shared record.", icon: "↗" },
   { id: "support", label: "Support", title: "Ask a human when it matters", copy: "Start with quick answers, then move to a specialist without starting over.", icon: "◌" },
   { id: "proof", label: "Proof", title: "Know when it arrives", copy: "A clear delivery milestone closes the loop for everyone on the journey.", icon: "✓" },
 ] as const;
@@ -49,7 +49,7 @@ function PhoneScreen({ step }: { step: (typeof STEPS)[number] }) {
   if (step.id === "route") {
     return (
       <div className="phone-screen__content">
-        <div className="phone-topline"><span className="phone-back">‹</span><strong>Live route</strong><span className="phone-share">↗</span></div>
+        <div className="phone-topline"><span className="phone-back">‹</span><strong>Route</strong><span className="phone-share">↗</span></div>
         <MiniMap />
         <div className="phone-route-card"><div><span className="phone-status-dot" /><strong>Moving as planned</strong></div><p>Last scan 4 min ago</p><div className="phone-route-stats"><span><small>Distance</small><strong>4,982 mi</strong></span><span><small>Mode</small><strong>Ocean</strong></span></div></div>
       </div>
@@ -121,7 +121,7 @@ export default function PlatformShowcase() {
             <p className="mt-3 text-sm leading-relaxed text-paper/60">{step.copy}</p>
           </div>
           <Link href="/tracking" className="platform-cta mt-9 inline-flex items-center gap-3">
-            Enter live tracking <span aria-hidden="true">↗</span>
+            Track a shipment <span aria-hidden="true">↗</span>
           </Link>
         </div>
 

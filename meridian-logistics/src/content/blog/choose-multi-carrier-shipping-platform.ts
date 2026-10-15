@@ -15,7 +15,7 @@ export const body: Block[] = [
   { h: "What a multi-carrier platform actually does" },
   { p: "Different products describe themselves differently, but the useful ones share a core set of capabilities." },
   { list: [
-    "Rate shopping: compares live prices and delivery dates across carriers and services for each shipment.",
+    "Rate shopping: compares current prices and delivery dates across carriers and services for each shipment.",
     "Label creation: produces compliant labels for every carrier from one screen, including the right forms for international and regulated shipments.",
     "Rules and automation: chooses a carrier and service automatically based on conditions you set, such as the cheapest option that still arrives by a certain day.",
     "Tracking: brings tracking events from every carrier into one consistent view, so your team and your customers do not need to know which carrier is involved.",
@@ -98,5 +98,5 @@ export const body: Block[] = [
   { p: "If cost falls but damage or late deliveries rise, the platform is moving cost rather than saving it. The aim is a lower cost for the same or better customer experience." },
 
   { h: "Where Bellmont fits" },
-  { p: "Bellmont compares rates and delivery dates across carriers, applies the rules you set, and shows every shipment's handoffs on one live record, so your team and your customers see the same picture whichever carrier is moving the box." },
+  { p: "Bellmont compares rates and delivery dates across carriers, applies the rules you set, and shows every shipment's handoffs on one shared record, so your team and your customers see the same picture whichever carrier is moving the box." },
 ];

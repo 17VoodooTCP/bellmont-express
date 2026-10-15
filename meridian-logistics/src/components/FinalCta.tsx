@@ -17,12 +17,12 @@ export default function FinalCta() {
 
         <h2 id="final-cta-title" className="hv2-h2 final-cta-title">
           Ready to see every handoff
-          <span> on one live record?</span>
+          <span> on one shared record?</span>
         </h2>
 
         <p className="hv2-sec-sub final-cta-sub">
           Join the teams who stopped phoning around for status updates. Track a
-          live shipment now, or walk through it with us.
+          shipment now, or walk through it with us.
         </p>
 
         <div className="final-cta-actions">

@@ -20,7 +20,7 @@ export const DEFAULT_REVIEWS: Review[] = [
     stars: 5,
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&q=70&auto=format&fit=crop",
     metrics: ["-18% freight spend", "400 containers / quarter"],
-    quote: "We moved 400 containers through Bellmont Express last quarter. The live map is the first one my team actually trusts. Every handoff shows up in minutes.",
+    quote: "We moved 400 containers through Bellmont Express last quarter. The tracking map is the first one my team actually trusts. Every handoff shows up in minutes.",
   },
   {
     id: "r2",

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 const VALUES = [
-  { title: "Visibility is a right", copy: "If it's your cargo, you should never have to ask where it is. Every Bellmont Express shipment reports its position, custody and condition in real time." },
+  { title: "Visibility is a right", copy: "If it's your cargo, you should never have to ask where it is. Every Bellmont Express shipment reports its position, custody and condition at every step." },
   { title: "Operators first", copy: "Our software is designed at the quay, not in a boardroom. Crane operators, drivers and planners shape every release." },
   { title: "One accountable partner", copy: "Ocean, air, road and rail under a single contract. One invoice, one support line, one company answerable for the outcome." },
   { title: "Lower-carbon by default", copy: "Rail-first intermodal routing and slow-steaming options are built into our quoting engine, not hidden behind a request form." },
@@ -25,7 +25,7 @@ export default function AboutPage() {
         oceans, yet its owner couldn&rsquo;t answer the only question that
         matters: <em>where is it now?</em> Today we run an integrated network
         spanning 180 ports and 40 countries, moving 1.2 million containers a
-        year with live, container-level visibility on every one.
+        year with container-level visibility on every one.
       </p>
 
       <div className="relative mt-14 aspect-[21/9] overflow-hidden rounded-3xl">

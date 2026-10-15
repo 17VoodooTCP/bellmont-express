@@ -7,7 +7,7 @@ const PLANS = [
   {
     name: "Start",
     price: "$0",
-    label: "For teams getting their first live shipping workflow in place.",
+    label: "For teams getting their first shipping workflow in place.",
     perLabel: "$0.99 per label",
     features: ["Local courier connection", "1 store / 1 carrier", "1 user", "Product & service mapping", "Full cold-chain coverage", "Claim management", "Packing slip customization", "Branded notifications"],
   },
@@ -16,7 +16,7 @@ const PLANS = [
     price: "$79",
     label: "For growing operations that need weather and delivery safeguards.",
     perLabel: "$0.40 per label",
-    features: ["Everything in Start", "2 stores / 2 carriers", "2 users", "Live weather tracking", "Zone mapping", "3 rule automations", "Confidence scores", "Late shipment alerts", "Box splitting algorithm", "Branded tracking page"],
+    features: ["Everything in Start", "2 stores / 2 carriers", "2 users", "Weather tracking", "Zone mapping", "3 rule automations", "Confidence scores", "Late shipment alerts", "Box splitting algorithm", "Branded tracking page"],
   },
   {
     name: "Scale",
@@ -24,7 +24,7 @@ const PLANS = [
     label: "For brands ready to optimize checkout and every post-purchase handoff.",
     perLabel: "$0.20 per label",
     featured: true,
-    features: ["Everything in Grow", "3 stores / 3 carriers", "Unlimited users", "Unlimited rule automations", "Live rates at checkout", "Rate rounding & markup", "Live shipping schedule", "Order protection", "Branded claim flow", "Delivery date picker", "Delivery promise"],
+    features: ["Everything in Grow", "3 stores / 3 carriers", "Unlimited users", "Unlimited rule automations", "Rates at checkout", "Rate rounding & markup", "Shipping schedule", "Order protection", "Branded claim flow", "Delivery date picker", "Delivery promise"],
   },
   {
     name: "Enterprise",
@@ -69,6 +69,6 @@ export default function PricingPage() {
       <div className="mt-10 overflow-hidden rounded-3xl border border-[#dce4f1] bg-white">{FAQS.map(([question, answer], index) => <div key={question} className="border-b border-[#e6ebf3] last:border-0"><button type="button" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)} className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left font-bold"><span>{question}</span><span className="text-2xl font-normal text-[#fca837]">{openFaq === index ? "−" : "+"}</span></button>{openFaq === index && <p className="max-w-3xl px-6 pb-6 text-sm leading-relaxed text-[#66738e]">{answer}</p>}</div>)}</div>
     </section>
 
-    <section className="mx-auto mt-24 max-w-5xl rounded-[2rem] bg-[#1e2950] px-6 py-16 text-center text-white md:px-16"><span className="section-kicker text-[#fca837]">Start with a clearer network</span><h2 className="mx-auto mt-5 max-w-2xl text-4xl font-bold leading-[.95] md:text-6xl">Ready to make every handoff count?</h2><p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/70">Bring your ocean, air, road, and rail movements into one calm, visible system.</p><Link href="/tracking" className="mt-8 inline-flex rounded-xl bg-[#fca837] px-6 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Enter live tracking <span className="ml-2">→</span></Link></section>
+    <section className="mx-auto mt-24 max-w-5xl rounded-[2rem] bg-[#1e2950] px-6 py-16 text-center text-white md:px-16"><span className="section-kicker text-[#fca837]">Start with a clearer network</span><h2 className="mx-auto mt-5 max-w-2xl text-4xl font-bold leading-[.95] md:text-6xl">Ready to make every handoff count?</h2><p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/70">Bring your ocean, air, road, and rail movements into one calm, visible system.</p><Link href="/tracking" className="mt-8 inline-flex rounded-xl bg-[#fca837] px-6 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5">Track a shipment <span className="ml-2">→</span></Link></section>
   </main>;
 }
