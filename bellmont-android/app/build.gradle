@@ -1,0 +1,70 @@
+plugins {
+    id "com.android.application"
+}
+
+/*
+ * Release signing material lives outside the repository and outside OneDrive:
+ * ~/bellmont-signing/keystore.properties (or the path in BELLMONT_KEYSTORE_PROPS)
+ * with storeFile, storePassword, keyAlias and keyPassword. Without it the
+ * release build is left unsigned rather than failing.
+ */
+def keystorePropsFile = file(System.getenv("BELLMONT_KEYSTORE_PROPS")
+        ?: "${System.getProperty('user.home')}/bellmont-signing/keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+android {
+    namespace "com.bellmontexpress.app"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.bellmontexpress.app"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+
+        /* The app is the live site, so every deploy reaches it without a new
+           APK. Hosts in APP_HOSTS stay inside the app; anything else opens in
+           the phone's browser. */
+        buildConfigField "String", "START_URL", "\"https://bellmont-express.vercel.app/\""
+        buildConfigField "String", "APP_HOSTS",
+                "\"bellmont-express.vercel.app,bellmontexpress.com,www.bellmontexpress.com\""
+    }
+
+    signingConfigs {
+        release {
+            if (keystoreProps["storeFile"]) {
+                storeFile file(keystoreProps["storeFile"])
+                storePassword keystoreProps["storePassword"]
+                keyAlias keystoreProps["keyAlias"]
+                keyPassword keystoreProps["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (keystoreProps["storeFile"]) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // Document-start script injection, used to route window.print() to Android.
+    implementation "androidx.webkit:webkit:1.12.1"
+}
