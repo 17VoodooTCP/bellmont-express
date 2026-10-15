@@ -20,18 +20,41 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.bellmontexpress.app"
         minSdk 24
         targetSdk 35
-        versionCode 2
-        versionName "1.0.1"
 
         /* The app is the live site, so every deploy reaches it without a new
            APK. Hosts in APP_HOSTS stay inside the app; anything else opens in
            the phone's browser. */
-        buildConfigField "String", "START_URL", "\"https://bellmont-express.vercel.app/\""
         buildConfigField "String", "APP_HOSTS",
                 "\"bellmont-express.vercel.app,bellmontexpress.com,www.bellmontexpress.com\""
+    }
+
+    /*
+     * Two apps from one codebase. They differ only in where they open, their
+     * name and their icon; separate application ids let both sit on one phone.
+     * The customer app has no route into the admin console — the public site
+     * never links to it and the app has no address bar — so the admin console
+     * ships only in the admin app, which is handed to staff.
+     */
+    flavorDimensions "audience"
+    productFlavors {
+        customer {
+            dimension "audience"
+            applicationId "com.bellmontexpress.app"
+            versionCode 2
+            versionName "1.0.1"
+            resValue "string", "app_name", "Bellmont Express"
+            buildConfigField "String", "START_URL", "\"https://bellmont-express.vercel.app/\""
+        }
+        admin {
+            dimension "audience"
+            applicationId "com.bellmontexpress.admin"
+            versionCode 1
+            versionName "1.0.0"
+            resValue "string", "app_name", "Bellmont Admin"
+            buildConfigField "String", "START_URL", "\"https://bellmont-express.vercel.app/admin/login\""
+        }
     }
 
     signingConfigs {
