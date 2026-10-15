@@ -61,11 +61,28 @@ public class MainActivity extends Activity {
     private static final Set<String> APP_HOSTS =
             new HashSet<>(Arrays.asList(BuildConfig.APP_HOSTS.split(",")));
 
-    /* Routes window.print() to the bridge. Runs at document start in every
-       frame, so it is in place before any page script calls print(). */
+    /*
+     * Routes window.print() to the bridge. Runs at document start in every
+     * frame, so it is in place before any page script calls print().
+     *
+     * Pop-ups need more. A window opened with window.open('') and filled with
+     * document.write never loads a page, so Android never attaches the bridge
+     * to it — and that is exactly how the receipt is made. So the opener, which
+     * does have the bridge, gives each window it opens a print() and close()
+     * that call back through its own bridge. They are set again after the
+     * opener's document.close(), in case writing the document reset them.
+     */
     private static final String PRINT_SHIM =
-            "(function(){if(!window.BXApp)return;"
-            + "window.print=function(){BXApp.print(document.title||'Bellmont Express');};})();";
+            "(function(){if(!window.BXApp||window.__bxShim)return;window.__bxShim=1;"
+            + "window.print=function(){BXApp.print(document.title||'Bellmont Express');};"
+            + "var open=window.open;"
+            + "window.open=function(){var w=open.apply(window,arguments);if(!w)return w;"
+            + "var arm=function(){try{"
+            + "w.print=function(){BXApp.printPopup((w.document&&w.document.title)||'Bellmont Express');};"
+            + "w.close=function(){BXApp.closePopup();};}catch(e){}};"
+            + "arm();"
+            + "try{var d=w.document,c=d.close;d.close=function(){var r=c.apply(d,arguments);arm();return r;};}catch(e){}"
+            + "return w;};})();";
 
     private FrameLayout root;
     private WebView web;
@@ -227,13 +244,12 @@ public class MainActivity extends Activity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         bar.setBackgroundColor(Color.parseColor("#1D2B59"));
-        int pad = dp(8);
-        bar.setPadding(dp(12), pad, pad, pad);
+        bar.setPadding(dp(14), dp(4), dp(6), dp(4));
 
         TextView title = new TextView(this);
         title.setText(R.string.app_name);
         title.setTextColor(Color.WHITE);
-        title.setTextSize(15);
+        title.setTextSize(14);
         bar.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         Button print = barButton("Print", true);
@@ -253,11 +269,21 @@ public class MainActivity extends Activity {
         Button b = new Button(this);
         b.setText(label);
         b.setAllCaps(false);
+        b.setTextSize(13);
+        // A compact bar button, not the 48dp-tall default.
+        b.setMinHeight(0);
+        b.setMinimumHeight(0);
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
+        b.setPadding(dp(14), dp(6), dp(14), dp(6));
         b.setTextColor(primary ? Color.parseColor("#1D2B59") : Color.WHITE);
-        b.setBackgroundColor(primary ? Color.parseColor("#F6A23A") : Color.TRANSPARENT);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(dp(6));
+        bg.setColor(primary ? Color.parseColor("#F6A23A") : Color.TRANSPARENT);
+        b.setBackground(bg);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(6);
+        lp.leftMargin = dp(4);
         b.setLayoutParams(lp);
         return b;
     }
@@ -308,6 +334,18 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void print(String title) {
             runOnUiThread(() -> printWebView(owner, title));
+        }
+
+        /** print() of a window this page opened — prints the pop-up, not the page. */
+        @JavascriptInterface
+        public void printPopup(String title) {
+            runOnUiThread(() -> printWebView(popup != null ? popup : owner, title));
+        }
+
+        /** close() of a window this page opened. */
+        @JavascriptInterface
+        public void closePopup() {
+            runOnUiThread(MainActivity.this::closePopup);
         }
 
         @JavascriptInterface
