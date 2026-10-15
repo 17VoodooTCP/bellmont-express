@@ -168,10 +168,12 @@ export default function TrackingExperience() {
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("id");
     if (fromUrl) {
+      /* One-time sync from the URL, an external source only readable after
+         mount — reading it during render would break static prerendering. */
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setId(fromUrl.toUpperCase());
       void lookup(fromUrl);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const eta = useMemo(() => {
@@ -190,24 +192,35 @@ export default function TrackingExperience() {
       <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand">Shipment tracking</p>
       <h1 className="mt-4 text-4xl font-bold md:text-6xl">Where is my cargo?</h1>
 
+      {/* min-w-0 lets the input shrink below its intrinsic ~20-character
+          width; without it the input pushed the Track button past the pill's
+          edge on phones, where overflow-hidden clipped it or hid it outright.
+          The example lives below the field, where it is never truncated. */}
       <form onSubmit={submit} className="mt-10 flex max-w-xl overflow-hidden rounded-full border border-line focus-within:border-ink">
         <input
           value={id}
           onChange={(e) => setId(e.target.value)}
           onFocus={() => void warmApi()}
-          placeholder="Tracking number, e.g. CP123456785US"
+          placeholder="Enter tracking number"
           aria-label="Tracking number"
-          className="notranslate flex-1 bg-transparent px-6 py-4 text-sm outline-none placeholder:text-ink-mute"
+          aria-describedby="tracking-example"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          className="notranslate min-w-0 flex-1 bg-transparent py-4 pl-5 pr-2 text-base outline-none placeholder:text-ink-mute sm:pl-6 sm:text-sm"
         />
         <button
           type="submit"
           disabled={loading}
           {...warmOnIntent}
-          className="m-1.5 rounded-full bg-iris px-7 text-sm font-semibold text-white transition-colors hover:bg-iris-deep disabled:opacity-50"
+          className="m-1.5 shrink-0 rounded-full bg-iris px-5 text-sm font-semibold text-white transition-colors hover:bg-iris-deep disabled:opacity-50 sm:px-7"
         >
           {loading ? "Locating…" : "Track"}
         </button>
       </form>
+      <p id="tracking-example" className="mt-3 max-w-xl pl-5 text-xs text-ink-mute sm:pl-6">
+        Example: <span className="notranslate font-semibold tracking-wide text-ink-soft">CP123456785US</span>
+      </p>
 
       {/* The free instance sleeps after 15 minutes idle. If it is still booting
           when someone searches, say so with a running count rather than leaving
