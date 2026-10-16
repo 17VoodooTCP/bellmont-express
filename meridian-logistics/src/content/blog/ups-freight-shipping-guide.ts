@@ -53,5 +53,5 @@ export const body: Block[] = [
   { p: "No carrier is best on every lane. UPS may be the strongest option in some regions and services, while another national, regional or postal carrier is cheaper or faster elsewhere. Compare carriers on your own routes, using delivered cost and on-time performance rather than published rates, and revisit the comparison regularly." },
 
   { h: "Where Bellmont helps" },
-  { p: "Bellmont shows UPS rates and delivery dates alongside other carriers for every shipment, so you can choose the service that meets your delivery window at the lowest real cost, and follow each package's handoffs on one shared record." },
+  { p: "Use this guide to choose the UPS service that meets your delivery window at the lowest real cost. Once it moves, Bellmont tracks every handoff on one shared record, so you and your customers see the same status at every step." },
 ];

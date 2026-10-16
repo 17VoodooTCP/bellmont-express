@@ -13,7 +13,7 @@ const FEATURES = [
   ["06", "Box Splitting Algorithm", "Our algorithm automatically determines the optimal number of shipments. Add packaging specs and let Bellmont handle the rest.", "Split required"],
   ["07", "Rule Automations", "Create rules for carrier selection, rate adjustments, zone routing, and more—all automated so your team can focus on growth.", "Active rules"],
   ["08", "Branded Tracking Page", "Stop sending customers to third-party sites. Your own customized tracking page with your logo, colors, and messaging.", "Your brand"],
-  ["09", "Shipping & Local Courier Management", "Industry-leading overnight rates with UPS, FedEx & USPS. Manage all carriers, labels, and shipments in one dashboard.", "Shipment control"],
+  ["09", "Shipping & Local Courier Management", "Manage shipments, labels and local courier handoffs in one dashboard. Comparing carrier services? See our UPS and FedEx shipping guides.", "Shipment control"],
 ] as const;
 
 const FEATURE_ICONS = ["▤", "▧", "☀", "♡", "◷", "▦", "✣", "▣", "◫"];

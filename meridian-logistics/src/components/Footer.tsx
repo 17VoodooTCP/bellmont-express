@@ -27,6 +27,8 @@ const COLS = [
     title: "Support",
     items: [
       { label: "Track a Shipment", href: "/tracking" },
+      { label: "UPS Shipping Guide", href: "/blog/ups-freight-shipping-guide" },
+      { label: "FedEx Shipping Guide", href: "/blog/fedex-freight-shipping-guide" },
       { label: "Help Center", href: "/support" },
       { label: "Claims", href: "/support" },
       { label: "Documentation", href: "/support" },

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { POSTS, getPost, headingId, readMinutes, relatedPosts } from "@/lib/blog";
+import { SITE_URL } from "@/lib/site";
+import { ORG_ID, jsonLd, organization } from "@/lib/structuredData";
 
 /* Every article is prebuilt at build time; any other slug is a 404. */
 export const dynamicParams = false;
@@ -52,8 +54,27 @@ export default async function ArticlePage(
       }).replace(/</g, "\\u003c") // escaped so article text can never close the script tag
     : null;
 
+  /* The article itself: what it is, when it was published and by whom. */
+  const url = `${SITE_URL}/blog/${post.slug}`;
+  const published = new Date(post.date);
+  const articleJsonLd = jsonLd({
+    "@type": "BlogPosting",
+    "@id": `${url}#article`,
+    mainEntityOfPage: url,
+    url,
+    headline: post.title,
+    description: post.summary,
+    image: `${SITE_URL}${post.image}`,
+    ...(Number.isNaN(published.getTime()) ? {} : { datePublished: published.toISOString().slice(0, 10) }),
+    articleSection: post.category,
+    inLanguage: "en",
+    author: { "@id": ORG_ID, "@type": "Organization", name: organization.name },
+    publisher: { "@id": ORG_ID },
+  });
+
   return (
     <main className="blog-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleJsonLd }} />
       {faqJsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
       )}

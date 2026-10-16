@@ -8,6 +8,7 @@ import BellmontChat from "@/components/BellmontChat";
 import SiteChrome from "@/components/SiteChrome";
 import { WarmOnLoad } from "@/components/ApiWarmth";
 import { SITE_URL } from "@/lib/site";
+import { jsonLd, organization, website } from "@/lib/structuredData";
 
 const display = Space_Grotesk({
   variable: "--font-display",
@@ -67,6 +68,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${body.variable} ${logo.variable}`}>
+        {/* Who Bellmont is, for search engines and AI answers, on every page. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd({ "@graph": [organization, website] }) }}
+        />
         {/* Google Translate mounts here, permanently invisible */}
         <div id="google_translate_element" aria-hidden="true" />
         <Script id="gt-init" strategy="afterInteractive">

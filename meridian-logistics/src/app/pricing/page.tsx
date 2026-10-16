@@ -39,7 +39,7 @@ const FAQS = [
   ["Is there a free trial?", "Yes. Start with the full Scale experience for 28 days, then choose the plan that matches your shipping volume and operational complexity."],
   ["Can I cancel at any time?", "Yes. Bellmont plans are month to month, so you can change or cancel as your operation changes."],
   ["What does cold-chain coverage include?", "Coverage, compliance records, and claim workflows are built into the platform so your team can manage exceptions from the same operating record."],
-  ["Does Bellmont work with my store and carriers?", "Bellmont connects Shopify, WooCommerce, BigCommerce, Wix, and other commerce systems alongside UPS, FedEx, USPS, and local courier workflows."],
+  ["Does Bellmont work with my store and carriers?", "Bellmont works alongside your store and local courier workflows. If you're choosing between carriers, our UPS and FedEx shipping guides compare services, costs and packaging rules."],
 ];
 
 export default function PricingPage() {
