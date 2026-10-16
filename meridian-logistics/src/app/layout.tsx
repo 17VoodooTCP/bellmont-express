@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import BellmontChat from "@/components/BellmontChat";
 import SiteChrome from "@/components/SiteChrome";
 import { WarmOnLoad } from "@/components/ApiWarmth";
+import { SITE_URL } from "@/lib/site";
 
 const display = Space_Grotesk({
   variable: "--font-display",
@@ -42,14 +43,16 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
+/* No canonical here: a layout's canonical is inherited by every page that
+   doesn't set its own, and "/" would tell Google each of them is a copy of
+   the homepage. Each public page declares its own instead. */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bellmontexpress.com"),
-  alternates: { canonical: "/" },
+  metadataBase: new URL(SITE_URL),
   title: "Bellmont Express | The Future of Freight",
   description:
     "Bellmont Express moves the world's cargo: ocean, air, road and rail freight with shipment tracking, one platform, zero friction.",
   openGraph: {
-    url: "https://bellmontexpress.com",
+    url: SITE_URL,
     siteName: "Bellmont Express",
     title: "Bellmont Express | The Future of Freight",
     description:

@@ -4,6 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Support | Bellmont Express",
   description: "Get help with tracking, claims, documentation and billing. support@bellmontexpress.com",
+  alternates: { canonical: "/support" },
 };
 
 const TOPICS = [

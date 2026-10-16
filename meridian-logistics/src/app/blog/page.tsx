@@ -5,6 +5,7 @@ import { summaries } from "@/lib/blog";
 export const metadata: Metadata = {
   title: "Blog | Bellmont Express",
   description: "Guides on freight fundamentals, shipping optimisation, and cold-chain packaging from Bellmont Express.",
+  alternates: { canonical: "/blog" },
 };
 
 export default function BlogPage() {

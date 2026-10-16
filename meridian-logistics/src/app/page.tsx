@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Reveal from "@/components/Reveal";
 import WelcomeHero from "@/components/WelcomeHero";
 import RotatingCards from "@/components/RotatingCards";
@@ -7,6 +8,8 @@ import { summaries } from "@/lib/blog";
 import FinalCta from "@/components/FinalCta";
 import FeatureRail from "@/components/FeatureRail";
 import { TrustMarquee, PostFeatureSections } from "@/components/HomeV2Sections";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const SERVICES = [
   {

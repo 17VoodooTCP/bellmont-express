@@ -4,6 +4,7 @@ import Image from "next/image";
 export const metadata: Metadata = {
   title: "About | Bellmont Express",
   description: "Why Bellmont Express exists: one platform for the world's freight, built by operators.",
+  alternates: { canonical: "/about" },
 };
 
 const VALUES = [

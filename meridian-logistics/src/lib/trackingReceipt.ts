@@ -2,11 +2,12 @@ import QRCode from "qrcode";
 import type { Shipment } from "./api";
 import { STATUS_LABEL } from "./api";
 import { LOGO_SVG_STRING } from "@/components/Logo";
+import { SITE_URL } from "./site";
 
 /* ── Palette: the brand amber over the receipt's navy ─────────────────── */
 const BRAND = "#f6a23a";
 const NAVY = "#1d2b59";
-const PAPER = "#f8fbff";
+const PAPER = "#f3f5f9";
 const SUPPORT_EMAIL = "support@bellmontexpress.com";
 
 const escapeHtml = (value: string | undefined) =>
@@ -16,15 +17,19 @@ const escapeHtml = (value: string | undefined) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-const formatDate = (value?: string) => {
-  if (!value) return "Pending confirmation";
+/** "Tue, Oct 20, 2026". UTC, because delivery dates are stored as midnight
+ *  UTC and a local reading would show the day before in the Americas. */
+const formatDay = (value?: string, { local = false } = {}) => {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Pending confirmation";
+  if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("en-US", {
+    weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
-    timeZone: "UTC",
+    /* A scan is a real moment, so it reads in local time like the history. */
+    ...(local ? {} : { timeZone: "UTC" }),
   });
 };
 
@@ -103,14 +108,11 @@ export function code128Svg(text: string, heightModules = 46): string {
 
 /* ── Icons: inline SVG, because emoji and symbol glyphs vary by printer font ── */
 const ICON = (d: string) =>
-  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const ICONS = {
-  up: ICON(`<path d="M7 20V5M3.5 8.5 7 5l3.5 3.5M17 20V5M13.5 8.5 17 5l3.5 3.5"/>`),
-  dry: ICON(`<path d="M3 12a9 9 0 0 1 18 0Z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/><path d="M12 3v.5"/>`),
-  fragile: ICON(`<path d="M7 3h10l-1 7a4 4 0 0 1-8 0Z"/><path d="M12 14v7M8.5 21h7"/><path d="m11 3 1.5 3-2 2 1.5 2"/>`),
-  stack: ICON(`<rect x="5" y="13" width="14" height="7" rx="1"/><path d="M12 3v7M8.5 6.5 12 10l3.5-3.5"/>`),
   scissors: ICON(`<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/>`),
-  shield: ICON(`<path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6Z"/><path d="m9 12 2 2 4-4"/>`),
+  arrow: ICON(`<path d="M4 12h16M14 6l6 6-6 6"/>`),
+  alert: ICON(`<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>`),
 };
 
 /* The milestones a parcel moves through, in order. A hold is shown on the
@@ -125,12 +127,12 @@ const STEP_LABEL: Record<string, string> = {
 };
 
 const STATUS_TONE: Record<Shipment["status"], { bg: string; fg: string; dot: string }> = {
-  pending: { bg: "#eef1f7", fg: "#3d4c70", dot: "#7f8bab" },
-  picked_up: { bg: "#e8effd", fg: "#21428f", dot: "#3a62c4" },
-  in_transit: { bg: "#e8effd", fg: "#21428f", dot: "#3a62c4" },
-  out_for_delivery: { bg: "#fff3e0", fg: "#8a4f04", dot: BRAND },
-  delivered: { bg: "#e4f5ea", fg: "#17663a", dot: "#239152" },
-  on_hold: { bg: "#fdeaea", fg: "#9b1f1f", dot: "#d23b3b" },
+  pending: { bg: "#eef1f6", fg: "#344054", dot: "#98a2b3" },
+  picked_up: { bg: "#eaf0fc", fg: "#1f3f8a", dot: "#3a62c4" },
+  in_transit: { bg: "#eaf0fc", fg: "#1f3f8a", dot: "#3a62c4" },
+  out_for_delivery: { bg: "#fff4e5", fg: "#8a4f04", dot: BRAND },
+  delivered: { bg: "#e7f6ec", fg: "#17663a", dot: "#239152" },
+  on_hold: { bg: "#fdecec", fg: "#9b1f1f", dot: "#d23b3b" },
 };
 
 /** Short, stable check value printed in the footer so a reprint of the same
@@ -156,7 +158,7 @@ export interface ReceiptOptions {
 
 /** The complete receipt document. Pure, so it can be rendered and tested. */
 export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): string {
-  const host = new URL(opts.siteOrigin).host;
+  const host = new URL(opts.siteOrigin).host.replace(/^www\./, "");
   const tracking = escapeHtml(shipment.trackingId);
   const sender = escapeHtml(shipment.senderName || "Sender");
   const receiver = escapeHtml(shipment.receiverName || "Recipient");
@@ -164,13 +166,18 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
   const destCity = escapeHtml(shipment.destination?.city || "Destination pending");
   const senderAddress = escapeHtml(shipment.senderAddress || shipment.origin?.city || "");
   const receiverAddress = escapeHtml(shipment.receiverAddress || shipment.destination?.city || "");
+  /* The label prints the address on one line, so its line breaks become commas. */
+  const receiverLine = receiverAddress.split(/\s*\n+\s*/).filter(Boolean).join(", ");
   const packageType = escapeHtml(shipment.packageType || "Parcel");
-  const weight = shipment.weight ? `${shipment.weight} lb` : "Not specified";
+  const weight = shipment.weight ? `${shipment.weight} lb` : "—";
   const status = shipment.status;
   const statusLabel = escapeHtml(STATUS_LABEL[status] ?? status.replaceAll("_", " "));
   const tone = STATUS_TONE[status] ?? STATUS_TONE.pending;
-  const eta = escapeHtml(formatDate(shipment.estimatedDelivery));
-  const location = escapeHtml(shipment.currentLocation?.city || shipment.origin?.city || "Origin pending");
+  const eta = escapeHtml(formatDay(shipment.estimatedDelivery)) || "To be confirmed";
+  /* A delivered parcel is at its destination, whatever the last scan said. */
+  const location = status === "delivered"
+    ? destCity
+    : escapeHtml(shipment.currentLocation?.city || shipment.origin?.city || "—");
 
   const d = opts.issuedAt;
   /* Local date, to match the "Issued" line — the UTC date is already
@@ -186,29 +193,40 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
   const events = [...(shipment.timeline ?? [])]
     .filter((e) => e && e.timestamp)
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 5);
-  const lastScan = events[0] ? escapeHtml(formatStamp(events[0].timestamp)) : "Awaiting first scan";
+    .slice(0, 6);
+  const lastScan = events[0] ? escapeHtml(formatStamp(events[0].timestamp)) : "—";
+  /* For a delivered parcel the hero date is when it arrived: the delivery
+     scan if there is one, the estimate only as a fallback. */
+  const deliveredScan = events.find((e) => e.status === "delivered");
+  const heroLabel = status === "delivered" ? "Delivered on" : "Estimated delivery";
+  const heroDate =
+    status === "delivered" && deliveredScan ? escapeHtml(formatDay(deliveredScan.timestamp, { local: true })) || eta : eta;
 
-  /* ── Progress stepper ── */
+  /* ── Progress ── */
   const held = status === "on_hold";
   const current = held ? STEPS.indexOf("in_transit") : Math.max(0, STEPS.indexOf(status));
   const pct = (current / (STEPS.length - 1)) * 100;
   const stepper = STEPS.map((s, i) => {
-    const state = i < current ? "done" : i === current ? (held ? "held" : "now") : "todo";
+    const state = i < current || status === "delivered" ? "done" : i === current ? (held ? "held" : "now") : "todo";
     const label = i === current && held ? "On hold" : STEP_LABEL[s];
-    return `<li class="step ${state}"><span class="node"></span><span class="lbl">${label}</span></li>`;
+    return `<li class="step ${state}"><span class="dot"></span><span class="sl">${label}</span></li>`;
   }).join("");
 
   const hold = held && shipment.holdReason
-    ? `<div class="notice" role="note"><span class="notice-tag">Hold notice</span><span class="notice-body">${escapeHtml(shipment.holdReason)}</span></div>`
+    ? `<div class="notice" role="note">${ICONS.alert}<div><b>This shipment is on hold.</b> ${escapeHtml(shipment.holdReason)}</div></div>`
     : "";
 
   const history = events.length
-    ? `<section class="field history"><header class="fh"><span class="no">05</span>Movement history</header>
-        <table><thead><tr><th>Date &amp; time</th><th>Event</th><th>Location</th><th>Detail</th></tr></thead><tbody>${events.map((e) => `
-          <tr><td class="t">${escapeHtml(formatStamp(e.timestamp))}</td><td class="ev">${escapeHtml(STATUS_LABEL[e.status as Shipment["status"]] ?? e.status.replaceAll("_", " "))}</td><td>${escapeHtml(e.location || "—")}</td><td class="dt">${escapeHtml(e.description || "")}</td></tr>`).join("")}
-        </tbody></table></section>`
-    : `<section class="field history empty"><header class="fh"><span class="no">05</span>Movement history</header><p>No scans recorded yet. Events appear here and at ${escapeHtml(host)}/tracking as the shipment moves.</p></section>`;
+    ? `<ol class="events">${events.map((e, i) => `
+        <li class="${i === 0 ? "latest" : ""}">
+          <span class="when">${escapeHtml(formatStamp(e.timestamp))}</span>
+          <span class="what"><b>${escapeHtml(STATUS_LABEL[e.status as Shipment["status"]] ?? e.status.replaceAll("_", " "))}</b>${e.description ? `<span>${escapeHtml(e.description)}</span>` : ""}</span>
+          <span class="where">${escapeHtml(e.location || "")}</span>
+        </li>`).join("")}
+      </ol>`
+    : status === "delivered"
+      ? `<p class="empty">No scan history was recorded for this shipment.</p>`
+      : `<p class="empty">No scans yet. Each pickup, transfer and delivery will appear at ${escapeHtml(host)}/tracking as it happens.</p>`;
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
@@ -218,146 +236,137 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
 <title>Shipment receipt ${tracking} · Bellmont Express</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --navy: ${NAVY}; --navy-2: #2b3f78; --amber: ${BRAND};
-    --ink: #121a33; --ink-2: #3b4664; --mute: #6b7591; --faint: #98a1b8;
-    --rule: #d9deea; --rule-2: #eceff5; --wash: #f5f7fb;
+    --navy: ${NAVY}; --amber: ${BRAND};
+    --ink: #101828; --ink-2: #344054; --mute: #667085; --faint: #98a2b3;
+    --line: #e4e7ec; --wash: #f6f7fa;
     --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
   }
   * { box-sizing: border-box; }
-  /* Print every colour as designed: browsers strip backgrounds by default,
-     which takes the navy bands, the status colours and the stepper with them. */
+  /* Print every colour as designed: browsers strip backgrounds by default. */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   html, body { margin: 0; }
   body { padding: 72px 0 40px; background: ${PAPER}; color: var(--ink);
-         font: 400 11px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+         font: 400 12px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
          -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "cv11" 1; }
 
   /* The page is a fixed Letter sheet. A sheet allowed to grow taller than the
      paper prints as a page plus a blank spill page. */
   .sheet { position: relative; width: 8.5in; height: 11in; margin: 0 auto; background: #fff;
-           box-shadow: 0 1px 2px rgba(18,26,51,.06), 0 24px 60px rgba(18,26,51,.14); overflow: hidden;
-           display: flex; flex-direction: column; padding: 0.42in 0.5in 0.36in; }
+           box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 20px 50px rgba(16,24,40,.10); overflow: hidden;
+           display: flex; flex-direction: column; padding: 0.5in 0.6in 0.42in; }
   .sheet > * { flex-shrink: 0; }
 
-  /* ── Masthead ───────────────────────────────────────────────────────── */
-  .mast { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+  .lbl { display: block; font-size: 10.5px; font-weight: 500; color: var(--mute); }
+  .mono { font-family: var(--mono); }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 24px;
+         padding-bottom: 18px; border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: 10px; }
-  .brand svg { width: 52px; height: 41px; }
-  .wordmark { font-size: 22px; font-weight: 700; font-style: italic; letter-spacing: -.03em; color: #49629d; line-height: 1; }
-  .tagline { margin-top: 6px; font-size: 8px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); }
-  .doc-title { text-align: right; }
-  .doc-title h1 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--navy); line-height: 1; }
-  .doc-title p { margin: 6px 0 0; font-size: 8.5px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--mute); }
-  .bar { margin-top: 14px; height: 3px; background: var(--navy); }
-  .bar + .bar { margin-top: 2px; height: 1.5px; background: linear-gradient(90deg, var(--amber), #ffd56d 50%, var(--amber)); }
+  .brand svg { width: 44px; height: 35px; }
+  .wordmark { font-size: 20px; font-weight: 700; font-style: italic; letter-spacing: -.03em; color: #49629d; line-height: 1; }
+  .doc { text-align: right; }
+  .doc h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); line-height: 1.2; }
+  .doc p { margin: 3px 0 0; font-size: 10.5px; color: var(--mute); }
+  .doc p .mono { color: var(--ink-2); font-size: 10.5px; }
 
-  /* ── Document control strip ─────────────────────────────────────────── */
-  .control { margin-top: 12px; display: grid; grid-template-columns: 1.15fr 1.25fr 1.35fr 1fr 1.05fr; border: 1px solid var(--rule); border-radius: 6px; }
-  .control > div { padding: 8px 11px 9px; min-width: 0; }
-  .control > div + div { border-left: 1px solid var(--rule); }
-  .k { display: block; font-size: 7.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
-  .v { display: block; margin-top: 3px; font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .v.mono { font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; padding: 2px 8px 2px 7px; border-radius: 999px; background: ${tone.bg}; color: ${tone.fg}; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: ${tone.dot}; }
+  /* ── Summary ────────────────────────────────────────────────────────── */
+  .hero { margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; }
+  .tn { margin-top: 4px; font-family: var(--mono); font-size: 27px; font-weight: 600; letter-spacing: .03em; line-height: 1.1; color: var(--ink); }
+  .pill { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 4px 11px 4px 9px; border-radius: 999px;
+          background: ${tone.bg}; color: ${tone.fg}; font-size: 11px; font-weight: 600; line-height: 1.2; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: ${tone.dot}; }
+  .hero-r { text-align: right; }
+  .eta { margin-top: 4px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; line-height: 1.15; color: var(--ink); }
 
-  /* ── Numbered form fields ───────────────────────────────────────────── */
-  .field { border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
-  .fh { display: flex; align-items: center; gap: 8px; padding: 6px 11px; background: var(--wash); border-bottom: 1px solid var(--rule);
-        font-size: 8px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-2); }
-  .fh .no { display: inline-grid; place-items: center; width: 17px; height: 15px; border-radius: 3px; background: var(--navy); color: #fff; font-family: var(--mono); font-size: 8px; letter-spacing: 0; }
-  .fb { padding: 9px 11px 10px; }
+  /* ── Journey ────────────────────────────────────────────────────────── */
+  .journey { margin-top: 18px; padding: 16px 22px 14px; border-radius: 12px; background: var(--wash); }
+  .ends { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 18px; }
+  .ends .r { text-align: right; }
+  .city { margin-top: 2px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; line-height: 1.2;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ends svg { width: 22px; height: 22px; color: var(--faint); }
+  .steps { list-style: none; margin: 16px 0 0; padding: 0; position: relative; display: grid; grid-template-columns: repeat(${STEPS.length}, 1fr); }
+  .steps::before, .steps::after { content: ""; position: absolute; top: 4px; height: 3px; left: 10%; border-radius: 3px; }
+  .steps::before { right: 10%; background: #dfe3ea; }
+  .steps::after { width: calc(80% * ${pct.toFixed(2)} / 100); background: ${held ? "#d23b3b" : "var(--navy)"}; }
+  .step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #fff; border: 2px solid #cfd5df; }
+  .done .dot { background: var(--navy); border-color: var(--navy); }
+  .now .dot { background: var(--amber); border-color: #fff; box-shadow: 0 0 0 2px var(--amber); }
+  .held .dot { background: #d23b3b; border-color: #fff; box-shadow: 0 0 0 2px #d23b3b; }
+  .sl { font-size: 10.5px; font-weight: 500; color: var(--faint); white-space: nowrap; }
+  .done .sl { color: var(--ink-2); }
+  .now .sl, .held .sl { color: var(--ink); font-weight: 600; }
+  .held .sl { color: #9b1f1f; }
 
-  .parties { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .party .name { font-size: 14px; font-weight: 700; line-height: 1.25; color: var(--ink);
-                 display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
-  .party .addr { margin-top: 4px; color: var(--ink-2); font-size: 10.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere;
-                 display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; min-height: 47px; }
+  .notice { margin-top: 12px; display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-radius: 10px;
+            background: #fdf2f2; color: #7a1c1c; font-size: 11.5px; line-height: 1.5; }
+  .notice svg { width: 17px; height: 17px; flex: none; margin-top: 1px; color: #c43232; }
+  .notice div { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+  .notice b { font-weight: 600; color: #5e1414; }
 
-  /* ── Route and progress ─────────────────────────────────────────────── */
-  .route { margin-top: 12px; padding: 13px 16px 12px; border-radius: 6px; background: linear-gradient(115deg, var(--navy), var(--navy-2)); color: #fff; }
-  .route-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 16px; }
-  .city { font-size: 19px; font-weight: 800; letter-spacing: -.01em; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .city-k { display: block; margin-bottom: 3px; font-size: 7.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #aebde0; }
-  .route-head .to { text-align: right; }
-  .eta { text-align: center; padding-bottom: 2px; }
-  .eta b { display: block; font-size: 12px; font-weight: 700; color: #fff; }
-  .eta span { font-size: 7.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #ffcf86; }
-  .steps { list-style: none; margin: 13px 0 0; padding: 0; position: relative; display: grid; grid-template-columns: repeat(${STEPS.length}, 1fr); }
-  .steps::before, .steps::after { content: ""; position: absolute; top: 5px; height: 2px; left: 10%; border-radius: 2px; }
-  .steps::before { right: 10%; background: rgba(255,255,255,.18); }
-  .steps::after { width: calc(80% * ${pct.toFixed(2)} / 100); background: ${held ? "#ff8f8f" : "var(--amber)"}; }
-  .step { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .node { width: 12px; height: 12px; border-radius: 50%; background: var(--navy-2); border: 2px solid rgba(255,255,255,.35); }
-  .done .node { background: var(--amber); border-color: var(--amber); }
-  .now .node { background: #fff; border-color: var(--amber); box-shadow: 0 0 0 3px rgba(246,162,58,.35); }
-  .held .node { background: #fff; border-color: #ff8f8f; box-shadow: 0 0 0 3px rgba(255,143,143,.35); }
-  .lbl { font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #9fb0d6; white-space: nowrap; }
-  .done .lbl { color: #dbe4f7; } .now .lbl { color: #fff; } .held .lbl { color: #ffb4b4; }
+  /* ── People ─────────────────────────────────────────────────────────── */
+  .parties { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .name { margin-top: 3px; font-size: 13.5px; font-weight: 600; line-height: 1.35; color: var(--ink);
+          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+  .addr { margin-top: 2px; color: var(--ink-2); font-size: 11.5px; line-height: 1.5; white-space: pre-line; overflow-wrap: anywhere;
+          display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 
-  .notice { margin-top: 10px; display: flex; gap: 12px; align-items: baseline; padding: 8px 12px; border-left: 3px solid #d23b3b; border-radius: 0 6px 6px 0; background: #fdf1f1; color: #7d1a1a; font-size: 10.5px; line-height: 1.45; }
-  .notice-tag { flex: none; font-size: 7.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #9b1f1f; }
-  .notice-body { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  /* ── Facts ──────────────────────────────────────────────────────────── */
+  .facts { margin-top: 18px; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .facts > div { padding: 10px 0; min-width: 0; }
+  .facts > div + div { padding-left: 18px; border-left: 1px solid var(--line); }
+  .val { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  /* ── Shipment and delivery facts ────────────────────────────────────── */
-  .facts { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .kv { display: grid; grid-template-columns: 1fr 1fr; }
-  .kv > div { padding: 8px 11px; min-width: 0; border-bottom: 1px solid var(--rule-2); }
-  .kv > div:nth-child(odd) { border-right: 1px solid var(--rule-2); }
-  .kv > div:nth-last-child(-n+2) { border-bottom: 0; }
+  /* ── History ────────────────────────────────────────────────────────── */
+  .history { margin-top: 18px; }
+  .history h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .events { list-style: none; margin: 0; padding: 0; }
+  .events li { display: grid; grid-template-columns: 112px minmax(0,1fr) 150px; gap: 16px; align-items: baseline;
+               padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .events li:last-child { border-bottom: 0; }
+  .when { font-size: 11px; color: var(--mute); white-space: nowrap; }
+  .what { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--mute); font-size: 11.5px; }
+  .what b { font-weight: 600; color: var(--ink); margin-right: 8px; }
+  .where { font-size: 11.5px; color: var(--ink-2); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .latest .when { color: var(--ink-2); }
+  .empty { margin: 4px 0 0; color: var(--mute); font-size: 11.5px; }
 
-  /* ── Movement history ───────────────────────────────────────────────── */
-  .history { margin-top: 12px; }
-  .history table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .history th { padding: 6px 11px; text-align: left; font-size: 7.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); border-bottom: 1px solid var(--rule); }
-  .history th:nth-child(1) { width: 122px; } .history th:nth-child(2) { width: 104px; } .history th:nth-child(3) { width: 150px; }
-  .history td { padding: 6px 11px; font-size: 10px; color: var(--ink-2); border-bottom: 1px solid var(--rule-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .history tr:last-child td { border-bottom: 0; }
-  .history td.t { font-family: var(--mono); font-size: 9.5px; color: var(--mute); }
-  .history td.ev { font-weight: 700; color: var(--ink); }
-  .history.empty p { margin: 0; padding: 10px 11px; color: var(--mute); font-size: 10px; }
-
-  .spacer { flex: 1 0 12px; }
+  .spacer { flex: 1 0 14px; }
 
   /* ── Detachable label ───────────────────────────────────────────────── */
-  .cut { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 7.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
-  .cut svg { width: 13px; height: 13px; flex: none; }
-  .cut::after { content: ""; flex: 1; border-top: 1px dashed #b9c1d4; }
-  .label { margin-top: 8px; border: 2px solid var(--ink); border-radius: 6px; overflow: hidden; }
-  .label-top { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: var(--ink); color: #fff;
-               font-size: 8.5px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
-  .label-top span:last-child { color: #ffcf86; }
-  .label-body { display: grid; grid-template-columns: 1fr 108px; }
-  .label-main { padding: 10px 14px 9px; border-right: 2px solid var(--ink); min-width: 0; }
-  .label-row { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: end; }
-  .ship-to .k { color: var(--ink); }
-  .ship-to b { display: block; margin-top: 2px; font-size: 13px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ship-to span { display: block; font-size: 10px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tn { text-align: right; }
-  .tn b { display: block; margin-top: 2px; font-family: var(--mono); font-size: 16px; font-weight: 600; letter-spacing: .06em; }
-  .barcode-svg { display: block; width: 100%; height: 62px; margin-top: 9px; }
-  .hri { margin-top: 4px; text-align: center; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .32em; }
-  .label-side { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 8px; }
-  .label-side img { width: 88px; height: 88px; image-rendering: pixelated; }
-  .label-side span { font-size: 7px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); text-align: center; }
-  .handling { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 2px solid var(--ink); }
-  .handling div { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 4px; font-size: 7.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
-  .handling div + div { border-left: 1px solid var(--rule); }
-  .handling svg { width: 15px; height: 15px; flex: none; color: var(--ink); }
+  .cut { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 10px; }
+  .cut svg { width: 14px; height: 14px; flex: none; }
+  .cut::after { content: ""; flex: 1; border-top: 1px dashed #c4cad6; }
+  .label { margin-top: 10px; border: 1.5px solid var(--ink); border-radius: 12px; overflow: hidden; }
+  .label-body { display: grid; grid-template-columns: minmax(0,1fr) 128px; }
+  .label-main { padding: 14px 18px 12px; border-right: 1.5px solid var(--ink); min-width: 0; }
+  .ship-to { min-width: 0; }
+  .ship-to .lbl { color: var(--ink-2); }
+  .ship-to b { display: block; margin-top: 2px; font-size: 15px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Address on one line: the label is for the delivery driver, and the
+     receipt above already carries it in full. */
+  .to-addr { display: block; margin-top: 1px; font-size: 11.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barcode-svg { display: block; width: 100%; height: 60px; margin-top: 10px; }
+  .hri { margin-top: 5px; text-align: center; font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: .3em; }
+  .label-side { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; }
+  .label-side img { width: 90px; height: 90px; image-rendering: pixelated; }
+  .label-side span { font-size: 10px; color: var(--mute); }
+  .label-foot { display: flex; justify-content: space-between; gap: 12px; padding: 7px 18px; background: var(--ink); color: #fff; font-size: 10.5px; }
+  .label-foot span:last-child { color: #c9d1e3; }
 
   /* ── Footer ─────────────────────────────────────────────────────────── */
-  .foot { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: end; color: var(--mute); font-size: 8px; line-height: 1.5; }
-  .foot .verify { display: flex; align-items: center; gap: 6px; text-align: right; }
-  .foot .verify svg { width: 14px; height: 14px; color: var(--navy); flex: none; }
-  .foot b { color: var(--ink-2); font-weight: 700; }
-  .foot .mono { font-family: var(--mono); letter-spacing: .04em; }
+  .foot { margin-top: 14px; display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; color: var(--mute); font-size: 9.5px; line-height: 1.55; }
+  .foot b { color: var(--ink-2); font-weight: 600; }
+  .foot .check { text-align: right; white-space: nowrap; }
 
   .toolbar { position: fixed; inset: 0 0 auto 0; z-index: 10; height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px;
-             background: rgba(255,255,255,.95); border-bottom: 1px solid var(--rule); }
-  .toolbar button { border: 1px solid #c9d0e0; border-radius: 6px; background: #fff; color: var(--ink); padding: 10px 18px; font: 700 12.5px/1 Inter, sans-serif; cursor: pointer; }
+             background: rgba(255,255,255,.95); border-bottom: 1px solid var(--line); }
+  .toolbar button { border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; color: var(--ink); padding: 10px 18px; font: 600 12.5px/1 Inter, sans-serif; cursor: pointer; }
   .toolbar button.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
 
   @page { size: letter portrait; margin: 0; }
@@ -373,70 +382,60 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
   <button type="button" onclick="window.close()">Close</button>
 </div>
 <main class="sheet">
-  <header class="mast">
-    <div>
-      <div class="brand">${LOGO_SVG_STRING}<span class="wordmark">Bellmont Express</span></div>
-      <div class="tagline">One shared record for every handoff</div>
+  <header class="top">
+    <div class="brand">${LOGO_SVG_STRING}<span class="wordmark">Bellmont Express</span></div>
+    <div class="doc">
+      <h1>Shipment receipt</h1>
+      <p><span class="mono">${receiptNo}</span> · Issued ${escapeHtml(issued)}</p>
     </div>
-    <div class="doc-title"><h1>Shipment receipt</h1><p>Proof of tender · Customer copy</p></div>
   </header>
-  <div class="bar"></div><div class="bar"></div>
 
-  <section class="control">
-    <div><span class="k">Receipt no.</span><span class="v mono">${receiptNo}</span></div>
-    <div><span class="k">Issued</span><span class="v">${escapeHtml(issued)}</span></div>
-    <div><span class="k">Tracking no.</span><span class="v mono">${tracking}</span></div>
-    <div><span class="k">Service</span><span class="v">Express parcel</span></div>
-    <div><span class="k">Status</span><span class="pill">${statusLabel}</span></div>
+  <section class="hero">
+    <div>
+      <span class="lbl">Tracking number</span>
+      <div class="tn">${tracking}</div>
+      <span class="pill">${statusLabel}</span>
+    </div>
+    <div class="hero-r">
+      <span class="lbl">${heroLabel}</span>
+      <div class="eta">${heroDate}</div>
+    </div>
   </section>
 
-  <section class="parties">
-    <div class="field party"><header class="fh"><span class="no">01</span>Shipper</header>
-      <div class="fb"><div class="name">${sender}</div><div class="addr">${senderAddress}</div></div></div>
-    <div class="field party"><header class="fh"><span class="no">02</span>Consignee</header>
-      <div class="fb"><div class="name">${receiver}</div><div class="addr">${receiverAddress}</div></div></div>
-  </section>
-
-  <section class="route" aria-label="Route and progress">
-    <div class="route-head">
-      <div><span class="city-k">Origin</span><div class="city">${originCity}</div></div>
-      <div class="eta"><span>Estimated delivery</span><b>${eta}</b></div>
-      <div class="to"><span class="city-k">Destination</span><div class="city">${destCity}</div></div>
+  <section class="journey" aria-label="Route and progress">
+    <div class="ends">
+      <div><span class="lbl">From</span><div class="city">${originCity}</div></div>
+      ${ICONS.arrow}
+      <div class="r"><span class="lbl">To</span><div class="city">${destCity}</div></div>
     </div>
     <ol class="steps">${stepper}</ol>
   </section>
   ${hold}
 
-  <section class="facts">
-    <div class="field"><header class="fh"><span class="no">03</span>Shipment details</header>
-      <div class="kv">
-        <div><span class="k">Package</span><span class="v">${packageType}</span></div>
-        <div><span class="k">Weight</span><span class="v">${escapeHtml(weight)}</span></div>
-        <div><span class="k">Origin</span><span class="v">${originCity}</span></div>
-        <div><span class="k">Destination</span><span class="v">${destCity}</span></div>
-      </div></div>
-    <div class="field"><header class="fh"><span class="no">04</span>Delivery</header>
-      <div class="kv">
-        <div><span class="k">Estimated delivery</span><span class="v">${eta}</span></div>
-        <div><span class="k">Current status</span><span class="v">${statusLabel}</span></div>
-        <div><span class="k">Current location</span><span class="v">${location}</span></div>
-        <div><span class="k">Last scan</span><span class="v">${lastScan}</span></div>
-      </div></div>
+  <section class="parties">
+    <div><span class="lbl">Sender</span><div class="name">${sender}</div><div class="addr">${senderAddress}</div></div>
+    <div><span class="lbl">Recipient</span><div class="name">${receiver}</div><div class="addr">${receiverAddress}</div></div>
   </section>
 
-  ${history}
+  <section class="facts">
+    <div><span class="lbl">Package</span><span class="val">${packageType}</span></div>
+    <div><span class="lbl">Weight</span><span class="val">${escapeHtml(weight)}</span></div>
+    <div><span class="lbl">Current location</span><span class="val">${location}</span></div>
+    <div><span class="lbl">Last update</span><span class="val">${lastScan}</span></div>
+  </section>
+
+  <section class="history">
+    <h2>Shipment history</h2>
+    ${history}
+  </section>
 
   <div class="spacer"></div>
 
-  <div class="cut">${ICONS.scissors}Detach and affix to package</div>
+  <div class="cut">${ICONS.scissors}Cut along the line and attach to the package</div>
   <section class="label" aria-label="Shipping label">
-    <div class="label-top"><span>Bellmont Express</span><span>Express parcel</span></div>
     <div class="label-body">
       <div class="label-main">
-        <div class="label-row">
-          <div class="ship-to"><span class="k">Ship to</span><b>${receiver}</b><span>${destCity}</span></div>
-          <div class="tn"><span class="k">Tracking no.</span><b>${tracking}</b></div>
-        </div>
+        <div class="ship-to"><span class="lbl">Ship to</span><b>${receiver}</b><span class="to-addr">${receiverLine}</span></div>
         ${code128Svg(shipment.trackingId)}
         <div class="hri">${tracking}</div>
       </div>
@@ -445,32 +444,27 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
         <span>Scan to track</span>
       </div>
     </div>
-    <div class="handling">
-      <div>${ICONS.up}This side up</div>
-      <div>${ICONS.dry}Keep dry</div>
-      <div>${ICONS.fragile}Fragile</div>
-      <div>${ICONS.stack}Do not stack</div>
-    </div>
+    <div class="label-foot"><span>Bellmont Express · ${escapeHtml(host)}</span><span>${packageType} · ${escapeHtml(weight)} · from ${originCity}</span></div>
   </section>
 
   <footer class="foot">
-    <span>This receipt records the shipment as it stood when printed. Live tracking at <b>${escapeHtml(host)}/tracking</b> is the authoritative status.
-      Questions: <b>${SUPPORT_EMAIL}</b>.</span>
-    <span class="verify">${ICONS.shield}<span>Document check <b class="mono">${check}</b><br />Page 1 of 1</span></span>
+    <span>This receipt shows the shipment as it was when issued. For the latest status, visit <b>${escapeHtml(host)}/tracking</b>.<br />
+      Questions? Email <b>${SUPPORT_EMAIL}</b> and quote your tracking number.</span>
+    <span class="check">Document check <b class="mono">${check}</b><br />Page 1 of 1</span>
   </footer>
 </main>
 <script>
-/* fitToPage: the sheet is one fixed page. Movement history is the only
-   open-ended section, so if the page overflows, its oldest rows go first —
-   then the table itself — rather than anything being cut off at the foot.
+/* fitToPage: the sheet is one fixed page. Shipment history is the only
+   open-ended section, so if the page overflows, its oldest entries go first —
+   then the section itself — rather than anything being cut off at the foot.
    Runs once fonts are in (they change heights) and again before printing. */
 (function () {
   var sheet = document.querySelector('.sheet');
   function fit() {
-    var rows = Array.prototype.slice.call(document.querySelectorAll('.history tbody tr'));
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.events li'));
     while (sheet.scrollHeight > sheet.clientHeight + 1 && rows.length) rows.pop().remove();
-    var table = document.querySelector('.history table');
-    if (table && !table.querySelector('tbody tr')) table.parentNode.remove();
+    var list = document.querySelector('.events');
+    if (list && !list.querySelector('li')) list.parentNode.remove();
   }
   function whenSet() {
     (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(fit, fit);
@@ -488,7 +482,9 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
 /** The finished receipt for a shipment, QR code included. `issuedAt` is when
  *  the receipt was issued — now, or when it was sent to a customer's inbox. */
 export async function receiptHtmlFor(shipment: Shipment, issuedAt = new Date()) {
-  const trackUrl = new URL("/tracking", window.location.origin);
+  /* The public address, not window.location: a receipt printed from a
+     .vercel.app or preview URL must still point customers at the real site. */
+  const trackUrl = new URL("/tracking", SITE_URL);
   trackUrl.searchParams.set("id", shipment.trackingId);
 
   let qrDataUrl = "";
@@ -502,7 +498,7 @@ export async function receiptHtmlFor(shipment: Shipment, issuedAt = new Date()) 
   } catch {
     // A receipt is still printable without the QR image.
   }
-  return buildReceiptHtml(shipment, { siteOrigin: window.location.origin, qrDataUrl, issuedAt });
+  return buildReceiptHtml(shipment, { siteOrigin: SITE_URL, qrDataUrl, issuedAt });
 }
 
 /** Opens a print-ready shipment receipt. Call only from a user gesture so the

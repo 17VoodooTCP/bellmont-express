@@ -4,6 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Services | Bellmont Express",
   description: "Ocean, air, road and rail freight, warehousing and express delivery. One contract, full visibility.",
+  alternates: { canonical: "/services" },
 };
 
 const SERVICES = [

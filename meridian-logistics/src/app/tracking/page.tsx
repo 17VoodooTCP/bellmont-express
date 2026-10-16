@@ -4,6 +4,7 @@ import TrackingExperience from "@/components/TrackingExperience";
 export const metadata: Metadata = {
   title: "Track a Shipment | Bellmont Express",
   description: "Route, milestones and journey log for every Bellmont Express shipment.",
+  alternates: { canonical: "/tracking" },
 };
 
 export default function TrackingPage() {
