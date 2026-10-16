@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Shipment, ShipmentStatus } from '@prisma/client';
+import { Prisma, Shipment, ShipmentStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService, userRoom } from '../realtime/notifications.service';
 import { EMAIL_RE } from '../common/validate';

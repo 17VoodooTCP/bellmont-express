@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import type { User } from '@prisma/client';
+import type { User } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OnApplicationBootstrap } from '@nestjs/common';
 import { RateLimiter } from '../common/rate-limit';

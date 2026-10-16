@@ -3,7 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, RequestStatus, type Shipment } from '@prisma/client';
+import {
+  Prisma,
+  RequestStatus,
+  type Shipment,
+} from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   ADMIN_ROOM,

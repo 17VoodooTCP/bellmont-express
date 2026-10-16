@@ -1,13 +1,17 @@
 /* One-time migration: Meridian Mongo cluster → PostgreSQL via Prisma.
    Usage: MONGO_URI=... DATABASE_URL=... npx ts-node scripts/migrate-from-mongo.ts */
 import { MongoClient } from 'mongodb';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient, Prisma } from '../src/generated/prisma/client';
 
 const MONGO_URI = process.env.MONGO_URI ?? '';
 
 async function main() {
   if (!MONGO_URI) throw new Error('Set MONGO_URI');
-  const prisma = new PrismaClient();
+  // Prisma 7 connects through a driver adapter.
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  });
   const mongo = await new MongoClient(MONGO_URI).connect();
   const db = mongo.db();
 
@@ -67,7 +71,9 @@ async function main() {
       create: {
         sessionId: c.sessionId,
         userName: c.userName ?? 'Website Visitor',
-        status: ['bot', 'human', 'closed'].includes(c.status) ? c.status : 'closed',
+        status: ['bot', 'human', 'closed'].includes(c.status)
+          ? c.status
+          : 'closed',
         context: (c.context ?? { state: 'greeting' }) as Prisma.InputJsonValue,
         createdAt: c.createdAt ?? new Date(),
       },

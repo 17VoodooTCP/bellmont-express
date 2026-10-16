@@ -5,6 +5,7 @@
     "dist",
     "node_modules",
     "scripts",
-    "test"
+    "test",
+    "prisma.config.ts"
   ]
 }

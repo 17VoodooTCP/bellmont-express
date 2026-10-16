@@ -1,11 +1,17 @@
+/* Prisma 7: the client is generated into src/ (not node_modules) as
+   CommonJS, which is what the NestJS build emits. It is rebuilt by
+   `prisma generate` on every deploy and is not committed. */
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
+/* Connection strings live outside the schema now: the CLI reads
+   prisma.config.ts (direct URL, for migrations) and the app passes the
+   pooled URL to its driver adapter (src/prisma/prisma.service.ts). */
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 enum Role {
