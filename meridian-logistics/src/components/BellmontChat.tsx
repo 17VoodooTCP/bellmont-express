@@ -19,9 +19,12 @@ import { warmApi } from "@/lib/wake";
 import {
   ALLOWED_ATTACHMENT_MIME,
   encodeAttachment,
+  isViewableImage,
   MAX_ATTACHMENT_BYTES,
   parseAttachment,
 } from "@/lib/chatAttachment";
+import AttachmentView from "@/components/chat/AttachmentView";
+import EmojiPicker, { insertAtCaret, isEmojiOnly } from "@/components/chat/EmojiPicker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -94,23 +97,14 @@ function Bubble({ msg, showMeta }: { msg: Msg; showMeta: boolean }) {
     <div className={`lcw-row ${mine ? "lcw-row--mine" : ""}`}>
       {!mine && (showMeta ? <Avatar sender={msg.sender} name={msg.agentName} /> : <span className="lcw-avatar-gap" />)}
       <div className="lcw-col">
-        <div className={`lcw-bubble ${mine ? "lcw-bubble--mine" : ""}`}>
-          {att ? (
-            att.type.startsWith("image/") ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={att.data} alt={att.name} className="max-h-48 rounded-lg" />
-            ) : (
-              <a href={att.data} download={att.name} className="lcw-file">
-                <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0" fill="currentColor" aria-hidden="true">
-                  <path d="M8 2a3 3 0 0 0-3 3v8a4 4 0 0 0 8 0V6h-1.5v7a2.5 2.5 0 0 1-5 0V5a1.5 1.5 0 1 1 3 0v7a.75.75 0 0 1-1.5 0V6H6.5v6a2.25 2.25 0 0 0 4.5 0V5a3 3 0 0 0-3-3z" />
-                </svg>
-                {att.name}
-              </a>
-            )
-          ) : (
-            <span style={{ whiteSpace: "pre-wrap" }}>{msg.message}</span>
-          )}
-        </div>
+        {!att && isEmojiOnly(msg.message) ? (
+          /* Emoji on their own read as a reaction: big, no bubble. */
+          <span className="lcw-emoji-only" role="img" aria-label={msg.message}>{msg.message}</span>
+        ) : (
+          <div className={`lcw-bubble ${mine ? "lcw-bubble--mine" : ""} ${att && isViewableImage(att) ? "lcw-bubble--media" : ""}`}>
+            {att ? <AttachmentView att={att} mine={mine} /> : <span style={{ whiteSpace: "pre-wrap" }}>{msg.message}</span>}
+          </div>
+        )}
         {showMeta && (
           <span className="lcw-meta">
             {mine ? "You" : msg.sender === "admin" ? msg.agentName ?? "Agent" : "Bellmont Assistant"}
@@ -354,6 +348,12 @@ export default function BellmontChat() {
       setAgentName(null);
       localStorage.removeItem("bellmont_chat_session");
     });
+    /* The server refused a message (too long, or a file it can't accept). */
+    s.on("messageRejected", ({ reason }: { reason?: string }) => {
+      clearBotWait();
+      setTypist((t) => (t?.kind === "bot" ? null : t));
+      note(`Not sent: ${reason ?? "the message couldn't be delivered."}`);
+    });
     s.on("typing", (b: { sender?: string; agentName?: string }) => {
       if (b?.sender && b.sender !== "admin") return;
       setTypist({ kind: "agent", name: b?.agentName ?? agentNameRef.current ?? "An agent" });
@@ -571,6 +571,13 @@ export default function BellmontChat() {
                 <path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8L13 4.9a3.7 3.7 0 0 1 5.2 5.2l-8.3 8.3a1.85 1.85 0 0 1-2.6-2.6l7.6-7.6" />
               </svg>
             </button>
+            <EmojiPicker
+              buttonClassName="lcw-icon-btn"
+              onPick={(e) => {
+                setInput((v) => insertAtCaret(inputRef.current, v, e));
+                signalTyping();
+              }}
+            />
             <div className={`lcw-field ${input.trim() ? "lcw-field--active" : ""}`}>
               <textarea
                 ref={inputRef}

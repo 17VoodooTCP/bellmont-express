@@ -10,10 +10,13 @@
  * any page, we quietly ping /api/health. The instance boots while they read the
  * hero, and by the time they reach tracking it is already up.
  *
- * Deliberately NOT a keep-alive timer. Render bills free web services by
- * instance-hours (750/month); pinging on a schedule would burn the monthly
- * budget keeping the box awake for nobody. This only ever fires on a real
- * visit, so it adds no idle cost.
+ * The main defence is now an external uptime monitor that calls /api/health
+ * every 10 minutes, so the instance never idles long enough to sleep. One
+ * always-on free service uses ~744 of Render's 750 free instance-hours a
+ * month, so that only works while it is the account's only free service.
+ * This file stays as the safety net: if the monitor lapses, or Render
+ * restarts the instance, the first visitor's page load starts the wake-up
+ * before they reach tracking or chat.
  */
 
 export type ApiStatus = "unknown" | "waking" | "warm" | "unreachable";

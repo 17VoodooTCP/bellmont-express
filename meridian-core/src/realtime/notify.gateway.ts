@@ -7,6 +7,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { SOCKET_SERVER_OPTIONS } from '../common/socket-options';
 import {
   ADMIN_ROOM,
   NotificationsService,
@@ -22,10 +23,7 @@ import {
  * dropped. Customers join only their own room, admins also join the team
  * room, so no client can receive anything addressed to someone else.
  */
-@WebSocketGateway({
-  namespace: '/notify',
-  cors: { origin: true, credentials: true },
-})
+@WebSocketGateway({ ...SOCKET_SERVER_OPTIONS, namespace: '/notify' })
 export class NotifyGateway implements OnGatewayInit, OnGatewayConnection {
   private readonly logger = new Logger(NotifyGateway.name);
 

@@ -850,6 +850,12 @@ html { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adj
 .lcw-bubble--mine { border-color: #586890; border-radius: 18px 18px 6px 18px; background: #586890; color: #fff; }
 .lcw-meta { margin: 4px 6px 10px; color: #8a90a0; font-size: .7rem; }
 .lcw-file { display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: underline; }
+/* A photo fills its bubble; the bubble is just a thin frame around it. */
+.lcw-bubble--media { padding: 4px; }
+/* A message of emoji alone reads as a reaction: large, no bubble. */
+.lcw-emoji-only { display: block; padding: 2px 4px; font-size: 2.1rem; line-height: 1.15; letter-spacing: .04em; animation: lcw-pop .35s cubic-bezier(.22,1.4,.36,1) both; }
+@keyframes lcw-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .lcw-emoji-only { animation: none; } }
 .lcw-system { align-self: center; margin: 8px 0; padding: 5px 12px; border-radius: 999px; background: #f0ece1; color: #6b7793; font-size: .74rem; text-align: center; }
 
 .lcw-quick { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px 36px; animation: lcw-in .32s cubic-bezier(.22,1,.36,1) .05s both; }

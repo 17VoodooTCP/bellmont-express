@@ -1,4 +1,8 @@
-import { ChatBotService, detectIntent, findTrackingId } from './chat-bot.service';
+import {
+  ChatBotService,
+  detectIntent,
+  findTrackingId,
+} from './chat-bot.service';
 
 /* A fake shipment table: one in transit, one on hold. */
 const shipments: Record<string, object> = {
@@ -18,20 +22,33 @@ const shipments: Record<string, object> = {
   },
 };
 
+const bookings: Record<string, { status: string }> = {
+  'BR-261016-5Q8V': { status: 'pending' },
+  'BR-261016-AB12': { status: 'approved' },
+};
+
 const prisma = {
   shipment: {
     findUnique: jest.fn(({ where }: { where: { trackingId: string } }) =>
       Promise.resolve(shipments[where.trackingId] ?? null),
     ),
   },
+  shipmentRequest: {
+    findUnique: jest.fn(({ where }: { where: { reference: string } }) =>
+      Promise.resolve(bookings[where.reference] ?? null),
+    ),
+  },
 };
 
 const bot = new ChatBotService(prisma as never);
-const ask = (text: string, state?: string, misses?: number) => bot.process({ state, misses }, text);
+const ask = (text: string, state?: string, misses?: number) =>
+  bot.process({ state, misses }, text);
 
 describe('findTrackingId', () => {
   it('finds a tracking number inside a sentence', () => {
-    expect(findTrackingId('hi, where is cp123456785us please?')).toBe('CP123456785US');
+    expect(findTrackingId('hi, where is cp123456785us please?')).toBe(
+      'CP123456785US',
+    );
   });
   it('ignores phone numbers and ZIP codes', () => {
     expect(findTrackingId('call me on 5551234567')).toBeNull();
@@ -51,6 +68,13 @@ describe('detectIntent', () => {
     ['how long does ground take', 'delivery_times'],
     ['thanks so much', 'thanks'],
     ['hello', 'greeting'],
+    ['how do I book a shipment', 'book'],
+    ['can you schedule a pickup', 'book'],
+    ['I forgot my password', 'account'],
+    ['how do I create an account', 'account'],
+    ['where can I find my receipt', 'documents'],
+    ['should I use ups or fedex', 'carriers'],
+    ['wheres my packge', 'track'],
   ])('"%s" → %s', (text, intent) => {
     expect(detectIntent(text)).toBe(intent);
   });
@@ -73,7 +97,9 @@ describe('ChatBotService', () => {
   it('explains a hold and offers a person', async () => {
     const r = await ask('CP987654321US');
     expect(r.message).toContain('Address needs confirming');
-    expect(r.quickActions.some((q) => q.value === 'talk_to_support')).toBe(true);
+    expect(r.quickActions.some((q) => q.value === 'talk_to_support')).toBe(
+      true,
+    );
   });
 
   it('says clearly when a tracking number is not found', async () => {
@@ -89,7 +115,10 @@ describe('ChatBotService', () => {
   });
 
   it('lets someone change topic while it waits for a tracking number', async () => {
-    const r = await ask('actually how much does shipping cost', 'awaiting_tracking_id');
+    const r = await ask(
+      'actually how much does shipping cost',
+      'awaiting_tracking_id',
+    );
     expect(r.quickActions.some((q) => q.value === 'link:/rates')).toBe(true);
   });
 
@@ -101,8 +130,12 @@ describe('ChatBotService', () => {
   it('offers a person instead of looping after two misunderstandings', async () => {
     const first = await ask('purple elephants', 'awaiting_choice', 0);
     expect(first.newContext.misses).toBe(1);
-    const second = await ask('more elephants', 'awaiting_choice', first.newContext.misses);
-    expect(second.message).toContain("rather not guess");
+    const second = await ask(
+      'more elephants',
+      'awaiting_choice',
+      first.newContext.misses,
+    );
+    expect(second.message).toContain('rather not guess');
     expect(second.quickActions[0].value).toBe('talk_to_support');
   });
 
@@ -111,8 +144,50 @@ describe('ChatBotService', () => {
     expect(r.newContext.misses).toBe(0);
   });
 
+  it('reads a booking reference before mistaking it for a tracking number', async () => {
+    const r = await ask('any news on BR-261016-5Q8V?');
+    expect(r.message).toContain('with our team for review');
+    expect(prisma.shipment.findUnique).not.toHaveBeenCalledWith({
+      where: { trackingId: 'BR-261016-5Q8V' },
+    });
+  });
+
+  it('gives a booking status without revealing its details', async () => {
+    const r = await ask('br-261016-ab12');
+    expect(r.message).toContain('approved');
+    expect(r.message).not.toMatch(/CP\d{9}US/);
+  });
+
+  it('says clearly when a booking reference is not found', async () => {
+    const r = await ask('BR-261016-ZZZZ');
+    expect(r.message).toContain("couldn't find a booking");
+  });
+
+  it('understands emoji on their own', async () => {
+    expect((await ask('👍')).message).toContain("You're welcome");
+    expect((await ask('👋')).message).toContain("I'm the Bellmont assistant");
+    expect((await ask('📦')).newState).toBe('awaiting_tracking_id');
+  });
+
+  it('points carrier questions at the UPS and FedEx guides', async () => {
+    const r = await ask('which is better, UPS or FedEx?');
+    expect(r.quickActions.map((q) => q.value)).toEqual(
+      expect.arrayContaining([
+        'link:/blog/ups-freight-shipping-guide',
+        'link:/blog/fedex-freight-shipping-guide',
+      ]),
+    );
+  });
+
+  it('explains how to book and links the booking form', async () => {
+    const r = await ask('I want to send a package');
+    expect(r.quickActions[0].value).toBe('link:/account/ship');
+  });
+
   it('links cold-chain questions to the guide', async () => {
     const r = await ask('how do I ship frozen seafood');
-    expect(r.quickActions[0].value).toBe('link:/blog/ship-temperature-sensitive-freight');
+    expect(r.quickActions[0].value).toBe(
+      'link:/blog/ship-temperature-sensitive-freight',
+    );
   });
 });

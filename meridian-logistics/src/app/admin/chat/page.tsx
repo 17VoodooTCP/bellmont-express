@@ -11,7 +11,15 @@ import {
   getToken,
   listChatSessions,
 } from "@/lib/adminApi";
-import { ALLOWED_ATTACHMENT_MIME, encodeAttachment, MAX_ATTACHMENT_BYTES, parseAttachment } from "@/lib/chatAttachment";
+import {
+  ALLOWED_ATTACHMENT_MIME,
+  encodeAttachment,
+  isViewableImage,
+  MAX_ATTACHMENT_BYTES,
+  parseAttachment,
+} from "@/lib/chatAttachment";
+import AttachmentView from "@/components/chat/AttachmentView";
+import EmojiPicker, { insertAtCaret, isEmojiOnly } from "@/components/chat/EmojiPicker";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 const timeAgo = (iso: string) => {
@@ -22,21 +30,9 @@ const timeAgo = (iso: string) => {
   return `${Math.floor(s / 86400)}d`;
 };
 
-function Body({ text }: { text: string }) {
-  const attachment = parseAttachment(text);
-  if (attachment) {
-    try {
-      const att = attachment;
-      return att.type.startsWith("image/") ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={att.data} alt={att.name} className="max-h-44 rounded-lg" />
-      ) : (
-        <a href={att.data} download={att.name} className="font-medium underline">
-          {att.name}
-        </a>
-      );
-    } catch { /* fall through to text */ }
-  }
+function Body({ text, mine }: { text: string; mine: boolean }) {
+  const att = parseAttachment(text);
+  if (att) return <AttachmentView att={att} mine={mine} />;
   return <span style={{ whiteSpace: "pre-wrap" }}>{text}</span>;
 }
 
@@ -50,6 +46,7 @@ export default function AdminChatPage() {
   const socketRef = useRef<Socket | null>(null);
   const activeRef = useRef<string>("");
   const endRef = useRef<HTMLDivElement>(null);
+  const replyRef = useRef<HTMLInputElement>(null);
   /* Visitors currently typing, by session. Entries expire on their own in
      case a stopTyping event is lost (closed tab, dropped connection). */
   const [typingSessions, setTypingSessions] = useState<Record<string, number>>({});
@@ -68,6 +65,7 @@ export default function AdminChatPage() {
        that stopped visitors from joining it. */
     s.on("connect", () => { setConnected(true); s.emit("adminConnect", { token: getToken() }); });
     s.on("unauthorized", () => router.replace("/admin/login"));
+    s.on("messageRejected", ({ reason }: { reason?: string }) => alert(`Not sent: ${reason ?? "the message couldn't be delivered."}`));
     s.on("disconnect", () => setConnected(false));
     s.on("newMessage", (m: ChatMsg & { sessionId?: string }) => {
       if (m.sessionId === activeRef.current) setMsgs((p) => [...p, m]);
@@ -234,7 +232,11 @@ export default function AdminChatPage() {
               <header className="flex items-center justify-between border-b border-line px-5 py-3.5">
                 <div>
                   <p className="text-sm font-semibold">{current.userName || "Visitor"}</p>
-                  <p className="notranslate text-[11px] text-ink-mute">{current.sessionId.slice(0, 24)}…</p>
+                  {typingSessions[current.sessionId] ? (
+                    <p className="text-[11px] font-medium italic text-brand" aria-live="polite">Customer is typing…</p>
+                  ) : (
+                    <p className="notranslate text-[11px] text-ink-mute">{current.sessionId.slice(0, 24)}…</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   {current.status === "bot" && (
@@ -251,28 +253,39 @@ export default function AdminChatPage() {
               </header>
 
               <div className="flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
-                {msgs.map((m, i) =>
-                  m.sender === "system" ? (
-                    <p key={i} className="text-center text-[11px] text-ink-mute">{m.message}</p>
-                  ) : (
-                    <div key={i} className={`flex ${m.sender === "admin" ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`max-w-[76%] px-3.5 py-2 text-sm leading-snug ${
-                          m.sender === "admin"
-                            ? "rounded-2xl rounded-br-[6px] bg-brand text-white"
-                            : "rounded-2xl rounded-bl-[6px] bg-brand-tint text-ink"
-                        }`}
-                      >
-                        {m.sender !== "admin" && (
-                          <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
-                            {m.sender === "bot" ? "Bot" : "Customer"}
-                          </p>
-                        )}
-                        <Body text={m.message} />
-                      </div>
+                {msgs.map((m, i) => {
+                  if (m.sender === "system") {
+                    return <p key={i} className="text-center text-[11px] text-ink-mute">{m.message}</p>;
+                  }
+                  const mine = m.sender === "admin";
+                  const att = parseAttachment(m.message);
+                  const label = !mine && (
+                    <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand">
+                      {m.sender === "bot" ? "Bot" : "Customer"}
+                    </p>
+                  );
+                  return (
+                    <div key={i} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                      {!att && isEmojiOnly(m.message) ? (
+                        <div className={mine ? "text-right" : ""}>
+                          {label}
+                          <span className="block text-[2rem] leading-tight" role="img" aria-label={m.message}>{m.message}</span>
+                        </div>
+                      ) : (
+                        <div
+                          className={`max-w-[76%] text-sm leading-snug ${att && isViewableImage(att) ? "p-1.5" : "px-3.5 py-2"} ${
+                            mine
+                              ? "rounded-2xl rounded-br-[6px] bg-brand text-white"
+                              : "rounded-2xl rounded-bl-[6px] bg-brand-tint text-ink"
+                          }`}
+                        >
+                          {label && <div className={att && isViewableImage(att) ? "px-2 pt-1" : ""}>{label}</div>}
+                          <Body text={m.message} mine={mine} />
+                        </div>
+                      )}
                     </div>
-                  )
-                )}
+                  );
+                })}
                 {typingSessions[current.sessionId] && (
                   <div className="flex items-center gap-2 text-[12px] text-ink-mute" aria-live="polite">
                     <span className="flex gap-1 rounded-2xl rounded-bl-[6px] bg-brand-tint px-3 py-2.5" aria-hidden="true">
@@ -298,7 +311,7 @@ export default function AdminChatPage() {
                     </svg>
                     <input
                       type="file"
-                      accept="image/*,.pdf,.doc,.docx,.txt,.csv"
+                      accept="image/png,image/jpeg,image/gif,image/webp,image/heic,image/heif,application/pdf"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
@@ -307,7 +320,15 @@ export default function AdminChatPage() {
                       }}
                     />
                   </label>
+                  <EmojiPicker
+                    buttonClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line text-ink-mute transition-colors hover:border-ink hover:text-ink"
+                    onPick={(e) => {
+                      setInput((v) => insertAtCaret(replyRef.current, v, e));
+                      signalTyping();
+                    }}
+                  />
                   <input
+                    ref={replyRef}
                     value={input}
                     onChange={(e) => { setInput(e.target.value); signalTyping(); }}
                     onBlur={stopSignal}
