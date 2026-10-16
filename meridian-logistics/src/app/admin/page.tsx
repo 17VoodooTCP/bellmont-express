@@ -9,10 +9,13 @@ import {
   createShipment,
   deleteShipment,
   getToken,
+  listRequests,
   listShipments,
   setShipmentStatus,
   updateShipment,
 } from "@/lib/adminApi";
+import SendDocumentDialog from "@/components/admin/SendDocumentDialog";
+import { ADMIN_LIVE_EVENT } from "@/components/admin/AdminNotifier";
 import type { Invoice, Shipment } from "@/lib/api";
 import { STATUS_LABEL } from "@/lib/api";
 import { openTrackingReceipt } from "@/lib/trackingReceipt";
@@ -71,6 +74,24 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [fee, setFee] = useState({ amount: "", description: "", type: "shipping_fee" });
   const [receiptShipment, setReceiptShipment] = useState<AdminShipment | null>(null);
+  const [sendFor, setSendFor] = useState<AdminShipment | null>(null);
+  const [pendingRequests, setPendingRequests] = useState(0);
+
+  /* Bookings awaiting review, kept current as customers submit them. */
+  useEffect(() => {
+    if (!getToken()) return;
+    const count = () =>
+      void listRequests("pending")
+        .then((r) => setPendingRequests(r.counts.pending ?? 0))
+        .catch(() => {});
+    count();
+    const onLive = (e: Event) => {
+      const { event } = (e as CustomEvent<{ event: string }>).detail;
+      if (event === "request:new" || event === "request:update") count();
+    };
+    window.addEventListener(ADMIN_LIVE_EVENT, onLive);
+    return () => window.removeEventListener(ADMIN_LIVE_EVENT, onLive);
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -88,6 +109,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!getToken()) { router.replace("/admin/login"); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount; state is set after the request resolves
     void refresh();
   }, [refresh, router]);
 
@@ -162,12 +184,23 @@ export default function AdminDashboard() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 pr-14">
         <div>
           <p className="notranslate flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand"><span className="inline-block">Bellmont Express</span> Admin</p>
           <h1 className="mt-2 text-3xl font-bold">Operations console</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/requests"
+            className="relative rounded-full border border-ink px-5 py-2.5 text-sm font-semibold hover:bg-ocean"
+          >
+            Requests
+            {pendingRequests > 0 && (
+              <span className="ml-2 rounded-full bg-orange-ink px-2 py-0.5 text-xs font-bold text-white">
+                {pendingRequests}
+              </span>
+            )}
+          </Link>
           <Link href="/admin/letters" className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold hover:border-ink">
             Letter builder
           </Link>
@@ -241,7 +274,14 @@ export default function AdminDashboard() {
               <tr key={s._id} className="border-b border-line last:border-0">
                 <td className="notranslate px-4 py-3 font-semibold">{s.trackingId}</td>
                 <td className="px-4 py-3 text-ink-soft">{s.origin?.city} → {s.destination?.city}</td>
-                <td className="px-4 py-3 text-ink-soft">{s.receiverName}</td>
+                <td className="px-4 py-3 text-ink-soft">
+                  {s.receiverName}
+                  {s.ownerId && (
+                    <span className="ml-2 rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-deep">
+                      Customer
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <select
                     value={s.status}
@@ -257,7 +297,13 @@ export default function AdminDashboard() {
                     ? `$${s.invoices!.reduce((t, i) => t + (i.amount || 0), 0).toFixed(2)}`
                     : <span className="text-ink-mute">None</span>}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <button
+                    onClick={() => setSendFor(s)}
+                    className="mr-3 text-xs font-semibold text-brand hover:underline"
+                  >
+                    Send to customer
+                  </button>
                   <button
                     onClick={() => void openTrackingReceipt(s)}
                     className="mr-3 text-xs font-semibold text-brand hover:underline"
@@ -277,6 +323,14 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
+
+      {sendFor && (
+        <SendDocumentDialog
+          shipment={sendFor}
+          onClose={() => setSendFor(null)}
+          onLinked={(next) => setShipments((list) => list.map((x) => (x._id === next._id ? { ...x, ownerId: next.ownerId } : x)))}
+        />
+      )}
 
       {/* editor drawer */}
       {editing && (

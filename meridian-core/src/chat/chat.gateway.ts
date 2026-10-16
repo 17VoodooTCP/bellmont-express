@@ -6,9 +6,16 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatBotService, type BotContext } from './chat-bot.service';
+
+/** What the server remembers about an agent's socket after adminConnect. */
+interface AgentData {
+  isAgent?: boolean;
+  agentName?: string;
+}
 
 /* Event contract is identical to the legacy socket server, so both the
    Meridian chat widget and the admin console connect unchanged. */
@@ -19,7 +26,18 @@ export class ChatGateway {
   constructor(
     private prisma: PrismaService,
     private bot: ChatBotService,
+    private jwt: JwtService,
   ) {}
+
+  /* Agent actions — joining the agent room, taking over, replying as an
+     agent, closing — require a socket that presented an admin token on
+     adminConnect. Without this any visitor could read every conversation or
+     impersonate the support desk. */
+  private isAgent(socket: Socket) {
+    if ((socket.data as AgentData).isAgent) return true;
+    socket.emit('unauthorized', { message: 'Agent sign-in required.' });
+    return false;
+  }
 
   private async saveMessage(
     sessionId: string,
@@ -52,9 +70,23 @@ export class ChatGateway {
   }
 
   @SubscribeMessage('adminConnect')
-  async adminConnect(@ConnectedSocket() socket: Socket, @MessageBody() body?: { agentName?: string }) {
-    socket.data.agentName = String(body?.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
+  async adminConnect(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() body?: { agentName?: string; token?: string },
+  ) {
+    const token = String(body?.token ?? socket.handshake.auth?.token ?? '').replace(/^Bearer\s+/i, '');
+    try {
+      const claims = await this.jwt.verifyAsync<{ id: string; role: string }>(token);
+      if (claims.role !== 'admin') throw new Error('not an admin');
+    } catch {
+      socket.emit('unauthorized', { message: 'Agent sign-in required.' });
+      return;
+    }
+    const agent = socket.data as AgentData;
+    agent.isAgent = true;
+    agent.agentName = String(body?.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await socket.join('admin_room');
+    socket.emit('agentReady');
   }
 
   @SubscribeMessage('userMessage')
@@ -129,6 +161,7 @@ export class ChatGateway {
     @ConnectedSocket() socket: Socket,
     @MessageBody() body: { sessionId: string; agentName?: string },
   ) {
+    if (!this.isAgent(socket)) return;
     await socket.join(body.sessionId);
     const agentName = String(body.agentName ?? socket.data.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await this.prisma.chatSession.update({
@@ -145,8 +178,10 @@ export class ChatGateway {
 
   @SubscribeMessage('adminMessage')
   async adminMessage(
+    @ConnectedSocket() socket: Socket,
     @MessageBody() body: { sessionId: string; message: string; agentName?: string },
   ) {
+    if (!this.isAgent(socket)) return;
     const agentName = String(body.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await this.prisma.chatSession.update({ where: { sessionId: body.sessionId }, data: { agentName } });
     const saved = await this.saveMessage(body.sessionId, 'admin', body.message);
@@ -163,6 +198,7 @@ export class ChatGateway {
 
   @SubscribeMessage('closeSession')
   async closeSession(@ConnectedSocket() socket: Socket, @MessageBody() body: { sessionId: string; agentName?: string }) {
+    if (!this.isAgent(socket)) return;
     const agentName = String(body.agentName ?? socket.data.agentName ?? 'Bellmont Express agent').trim().slice(0, 80);
     await this.prisma.chatSession.update({
       where: { sessionId: body.sessionId },

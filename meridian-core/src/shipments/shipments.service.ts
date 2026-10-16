@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Shipment, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService, userRoom } from '../realtime/notifications.service';
+import { EMAIL_RE } from '../common/validate';
 
 /* Wire shape stays identical to the legacy API so the frontend needs no changes */
 const toWire = (s: Shipment) => ({ _id: s.id, ...s });
@@ -14,9 +16,82 @@ const STATUS_DESCRIPTIONS: Record<ShipmentStatus, string> = {
   on_hold: 'Shipment placed on hold',
 };
 
+const STATUS_LABELS: Record<ShipmentStatus, string> = {
+  pending: 'Awaiting pickup',
+  picked_up: 'Picked up',
+  in_transit: 'In transit',
+  out_for_delivery: 'Out for delivery',
+  delivered: 'Delivered',
+  on_hold: 'On hold',
+};
+
 @Injectable()
 export class ShipmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
+
+  /** Tells the shipment's customer, if it has one, that its status moved. */
+  private async notifyOwner(shipment: Shipment, previous: ShipmentStatus) {
+    if (!shipment.ownerId) return;
+    this.notifications.emit(userRoom(shipment.ownerId), 'shipment:update', toWire(shipment));
+    if (shipment.status === previous) return;
+    const label = STATUS_LABELS[shipment.status];
+    await this.notifications.notifyUser(shipment.ownerId, {
+      type: 'shipment.status',
+      title: `${shipment.trackingId}: ${label}`,
+      body:
+        shipment.status === 'on_hold' && shipment.holdReason
+          ? `On hold — ${shipment.holdReason}`
+          : `Your shipment is now ${label.toLowerCase()}.`,
+      link: `/account/shipments?open=${shipment.id}`,
+    });
+  }
+
+  /* ── Customer ── */
+
+  async listMine(userId: string) {
+    const shipments = await this.prisma.shipment.findMany({
+      where: { ownerId: userId },
+      orderBy: { createdAt: 'desc' },
+      include: { request: { select: { id: true, reference: true, serviceLevel: true } } },
+      take: 200,
+    });
+    return { shipments: shipments.map((s) => ({ ...toWire(s), request: s.request })) };
+  }
+
+  /* ── Admin: link a shipment to a customer account, or unlink it ── */
+
+  async setOwner(id: string, body: { email?: string | null; userId?: string | null }) {
+    const existing = await this.prisma.shipment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Shipment not found');
+
+    let ownerId: string | null = null;
+    const email = body?.email?.trim().toLowerCase();
+    if (body?.userId) {
+      const user = await this.prisma.user.findUnique({ where: { id: body.userId } });
+      if (!user) throw new NotFoundException('Customer not found');
+      ownerId = user.id;
+    } else if (email) {
+      if (!EMAIL_RE.test(email)) throw new BadRequestException('Enter a valid email address.');
+      const user = await this.prisma.user.findUnique({ where: { email } });
+      if (!user) throw new NotFoundException(`No customer account uses ${email}.`);
+      ownerId = user.id;
+    }
+
+    const shipment = await this.prisma.shipment.update({ where: { id }, data: { ownerId } });
+    if (ownerId && ownerId !== existing.ownerId) {
+      await this.notifications.notifyUser(ownerId, {
+        type: 'shipment.linked',
+        title: `${shipment.trackingId} added to your account`,
+        body: `${shipment.senderName} → ${shipment.receiverName}`,
+        link: `/account/shipments?open=${shipment.id}`,
+      });
+      this.notifications.emit(userRoom(ownerId), 'shipment:update', toWire(shipment));
+    }
+    return { shipment: toWire(shipment) };
+  }
 
   async track(trackingId: string) {
     const shipment = await this.prisma.shipment.findUnique({
@@ -117,6 +192,7 @@ export class ShipmentsService {
         }),
       },
     });
+    await this.notifyOwner(shipment, existing.status);
     return { shipment: toWire(shipment) };
   }
 
@@ -138,6 +214,7 @@ export class ShipmentsService {
         }),
       },
     });
+    await this.notifyOwner(shipment, existing.status);
     return { shipment: toWire(shipment) };
   }
 
@@ -158,6 +235,7 @@ export class ShipmentsService {
         }),
       },
     });
+    await this.notifyOwner(shipment, existing.status);
     return { shipment: toWire(shipment) };
   }
 
@@ -196,6 +274,7 @@ export class ShipmentsService {
     }
 
     const shipment = await this.prisma.shipment.update({ where: { id }, data: patch });
+    await this.notifyOwner(shipment, existing.status);
     return { shipment: toWire(shipment) };
   }
 

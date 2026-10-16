@@ -7,10 +7,12 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ShipmentsService } from './shipments.service';
-import { AdminGuard } from '../auth/auth.guard';
+import { AdminGuard, AuthGuard } from '../auth/auth.guard';
+import type { AuthedRequest } from '../auth/auth.guard';
 
 @Controller('shipments')
 export class ShipmentsController {
@@ -19,6 +21,13 @@ export class ShipmentsController {
   @Get('track/:trackingId')
   track(@Param('trackingId') trackingId: string) {
     return this.shipments.track(trackingId);
+  }
+
+  /** The signed-in customer's own shipments. Declared before any ':id' route. */
+  @Get('mine')
+  @UseGuards(AuthGuard)
+  mine(@Req() req: AuthedRequest) {
+    return this.shipments.listMine(req.user.id);
   }
 
   @Get()
@@ -50,6 +59,12 @@ export class ShipmentsController {
   @UseGuards(AdminGuard)
   hold(@Param('id') id: string, @Body() body: { holdReason?: string }) {
     return this.shipments.hold(id, body.holdReason);
+  }
+
+  @Put(':id/owner')
+  @UseGuards(AdminGuard)
+  setOwner(@Param('id') id: string, @Body() body: { email?: string | null; userId?: string | null }) {
+    return this.shipments.setOwner(id, body);
   }
 
   @Put(':id/resume')

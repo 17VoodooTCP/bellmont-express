@@ -28,14 +28,105 @@ enum ChatStatus {
   closed
 }
 
+enum RequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
   password  String
   role      Role     @default(user)
+  phone     String?
+  company   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  shipments     Shipment[]
+  requests      ShipmentRequest[]
+  documents     Document[]
+  notifications Notification[]
+}
+
+/// A customer's booking. Nothing reaches the live shipment table until an
+/// admin approves it; approval issues the tracking number.
+model ShipmentRequest {
+  id              String        @id @default(cuid())
+  /// Human reference quoted in support, e.g. BR-261015-K7Q2.
+  reference       String        @unique
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          RequestStatus @default(pending)
+  /// standard | express | priority
+  serviceLevel    String        @default("standard")
+  senderName      String
+  senderPhone     String?
+  senderAddress   String
+  originCity      String
+  receiverName    String
+  receiverPhone   String?
+  receiverAddress String
+  destinationCity String
+  packageType     String
+  weight          Float?
+  dimensions      String?
+  declaredValue   Float?
+  contents        String?
+  pickupDate      DateTime?
+  notes           String?
+  /// Admin's reason on rejection, or a note to the customer on approval.
+  reviewNote      String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  shipmentId      String?       @unique
+  shipment        Shipment?     @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// A document sent to a customer's inbox. `payload` is a snapshot of the data
+/// the document is rendered from (for a receipt, the shipment at send time),
+/// so the customer always sees what was sent, and the page renders it with
+/// the same escaped generator the admin used — no stored HTML.
+model Document {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shipmentId String?
+  shipment   Shipment? @relation(fields: [shipmentId], references: [id], onDelete: SetNull)
+  /// receipt (more kinds later: invoice, letter)
+  kind       String
+  title      String
+  message    String?
+  payload    Json
+  sentBy     String?
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/// In-app notification. userId null means it is for the admin team.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String    @default("")
+  /// Where clicking it takes you, e.g. /account/documents/abc
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Shipment {
@@ -63,10 +154,16 @@ model Shipment {
   customsIntercepted      Boolean        @default(false)
   borderClearanceEligible Boolean        @default(false)
   customsNotes            String?
+  /// The customer account this shipment belongs to, if any.
+  ownerId                 String?
+  owner                   User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  request                 ShipmentRequest?
+  documents               Document[]
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
 
   @@index([status])
+  @@index([ownerId])
 }
 
 model ChatSession {

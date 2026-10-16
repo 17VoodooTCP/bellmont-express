@@ -1,4 +1,10 @@
 import type { Shipment, Invoice } from "./api";
+import type {
+  AppNotification,
+  DocumentSummary,
+  RequestStatus,
+  ShipmentRequest,
+} from "./accountApi";
 
 /* Falls back to the local API, never to a previous deployment: a missing
    NEXT_PUBLIC_API_URL should fail visibly rather than quietly talk to old data. */
@@ -51,7 +57,8 @@ export async function login(email: string, password: string) {
 }
 
 /* ── shipments ── */
-export type AdminShipment = Shipment & { _id: string };
+/** ownerId links a shipment to a customer account (null when it has none). */
+export type AdminShipment = Shipment & { _id: string; ownerId?: string | null };
 
 export const listShipments = () =>
   call<{ shipments: AdminShipment[]; total: number }>("/shipments?limit=100");
@@ -149,3 +156,69 @@ export const getChatMessages = (sessionId: string) =>
   call<unknown>(`/chat/sessions/${encodeURIComponent(sessionId)}`).then(
     unwrap<{ messages?: ChatMsg[] } | ChatMsg[]>("messages")
   ).then((m) => (Array.isArray(m) ? m : (m?.messages ?? [])));
+
+/* ── Customer accounts, requests and the document forwarder ── */
+
+export type { AppNotification, RequestStatus, ShipmentRequest };
+
+const post = (body?: unknown): RequestInit => ({
+  method: "POST",
+  body: body === undefined ? undefined : JSON.stringify(body),
+});
+
+export const listRequests = (status: RequestStatus | "all" = "pending") =>
+  call<{ requests: ShipmentRequest[]; counts: Partial<Record<RequestStatus, number>> }>(
+    `/requests?status=${status}`
+  );
+
+export const approveRequest = (id: string, body: { estimatedDelivery?: string; note?: string }) =>
+  call<{ request: ShipmentRequest; shipment: AdminShipment }>(`/requests/${id}/approve`, post(body));
+
+export const rejectRequest = (id: string, reason: string) =>
+  call<{ request: ShipmentRequest }>(`/requests/${id}/reject`, post({ reason }));
+
+export type CustomerSummary = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  company: string | null;
+  createdAt: string;
+  _count: { shipments: number; requests: number; documents: number };
+};
+
+export const listCustomers = (search = "") =>
+  call<{ customers: CustomerSummary[] }>(`/auth/customers?search=${encodeURIComponent(search)}`).then(
+    (r) => r.customers
+  );
+
+/** Links a shipment to the customer with this email; null email unlinks it. */
+export const setShipmentOwner = (id: string, email: string | null) =>
+  call<{ shipment: AdminShipment }>(`/shipments/${id}/owner`, {
+    method: "PUT",
+    body: JSON.stringify({ email }),
+  }).then((r) => r.shipment);
+
+export type SentDocument = DocumentSummary & {
+  sentBy: string | null;
+  user: { id: string; name: string; email: string };
+};
+
+export const sendDocument = (body: { shipmentId: string; message?: string; title?: string }) =>
+  call<{ document: DocumentSummary; recipient: { id: string; name: string; email: string } }>(
+    "/documents",
+    post({ ...body, kind: "receipt" })
+  );
+
+export const listSentDocuments = (shipmentId?: string) =>
+  call<{ documents: SentDocument[] }>(
+    `/documents${shipmentId ? `?shipmentId=${encodeURIComponent(shipmentId)}` : ""}`
+  ).then((r) => r.documents);
+
+export const withdrawDocument = (id: string) =>
+  call<{ deleted: boolean }>(`/documents/${id}`, { method: "DELETE" });
+
+export const adminNotifications = () =>
+  call<{ notifications: AppNotification[]; unread: number }>("/notifications/admin");
+export const readAdminNotification = (id: string) => call(`/notifications/admin/${id}/read`, post());
+export const readAllAdminNotifications = () => call("/notifications/admin/read-all", post());

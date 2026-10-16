@@ -55,6 +55,6 @@ export class ChatController {
 
 @Module({
   controllers: [ChatController],
-  providers: [ChatGateway, ChatBotService, PrismaService],
+  providers: [ChatGateway, ChatBotService],
 })
 export class ChatModule {}

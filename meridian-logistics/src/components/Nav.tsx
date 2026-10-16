@@ -4,8 +4,28 @@ import Link from "next/link";
 import { warmOnIntent } from "@/components/ApiWarmth";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CircleUser } from "lucide-react";
 import Logo from "./Logo";
 import NavIntro from "./NavIntro";
+import { getUserToken, SESSION_EVENT } from "@/lib/accountApi";
+
+/* Signed-in state for the header. Read after mount (the token lives in
+   localStorage, which the server render cannot see) and kept in step with
+   sign-in and sign-out elsewhere in the tab. */
+function useSignedIn() {
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    const sync = () => setSignedIn(!!getUserToken());
+    sync();
+    window.addEventListener(SESSION_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(SESSION_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+  return signedIn;
+}
 
 /* Kept short so the bar reads cleanly and leaves room for the arrival
    animation; the rest of the site is reachable from the footer. */
@@ -22,6 +42,10 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [hash, setHash] = useState("");
+  const signedIn = useSignedIn();
+  const account = signedIn
+    ? { href: "/account", label: "My account" }
+    : { href: "/login", label: "Sign in" };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -81,6 +105,15 @@ export default function Nav() {
 
         <div className="flex items-center gap-3 justify-self-end">
           <Link
+            href={account.href}
+            {...warmOnIntent}
+            aria-current={pathname.startsWith(account.href) ? "page" : undefined}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-2 text-[13px] font-semibold text-ink-soft transition-colors hover:text-ink xl:text-sm"
+          >
+            <CircleUser size={20} className="shrink-0" />
+            <span className="hidden sm:inline">{account.label}</span>
+          </Link>
+          <Link
             href="/tracking"
             {...warmOnIntent}
             className="nav-cta hidden whitespace-nowrap rounded-full bg-iris px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-iris-deep lg:inline-block xl:px-5 xl:text-sm"
@@ -106,6 +139,13 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href={account.href}
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 border-t border-line px-3 py-3 text-base font-semibold text-ink"
+          >
+            <CircleUser size={20} /> {account.label}
+          </Link>
           <Link
             href="/tracking"
             {...warmOnIntent}

@@ -64,7 +64,10 @@ export default function AdminChatPage() {
 
     const s = io(API, { transports: ["websocket", "polling"] });
     socketRef.current = s;
-    s.on("connect", () => { setConnected(true); s.emit("adminConnect"); });
+    /* The agent channel requires the admin token since the server-side fix
+       that stopped visitors from joining it. */
+    s.on("connect", () => { setConnected(true); s.emit("adminConnect", { token: getToken() }); });
+    s.on("unauthorized", () => router.replace("/admin/login"));
     s.on("disconnect", () => setConnected(false));
     s.on("newMessage", (m: ChatMsg & { sessionId?: string }) => {
       if (m.sessionId === activeRef.current) setMsgs((p) => [...p, m]);

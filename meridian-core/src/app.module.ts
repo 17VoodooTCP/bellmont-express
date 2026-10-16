@@ -4,6 +4,10 @@ import { ShipmentsModule } from './shipments/shipments.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { ChatModule } from './chat/chat.module';
 import { LettersModule } from './letters/letters.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './realtime/realtime.module';
+import { RequestsModule } from './requests/requests.module';
+import { DocumentsModule } from './documents/documents.module';
 
 @Controller()
 export class HealthController {
@@ -18,7 +22,17 @@ export class HealthController {
 }
 
 @Module({
-  imports: [AuthModule, ShipmentsModule, ReviewsModule, ChatModule, LettersModule],
+  imports: [
+    PrismaModule,
+    RealtimeModule,
+    AuthModule,
+    ShipmentsModule,
+    RequestsModule,
+    DocumentsModule,
+    ReviewsModule,
+    ChatModule,
+    LettersModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}

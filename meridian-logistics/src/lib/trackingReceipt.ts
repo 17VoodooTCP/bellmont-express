@@ -485,15 +485,9 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
 </body></html>`;
 }
 
-/** Opens a print-ready shipment receipt. Call only from a user gesture so the
- * browser is allowed to open the window. */
-export async function openTrackingReceipt(shipment: Shipment) {
-  // The new document is written into this same-origin blank window. Do not use
-  // `noopener` here: some browsers return a null WindowProxy when it is set,
-  // making it impossible to populate the print sheet.
-  const printWindow = window.open("", "_blank");
-  if (!printWindow) return false;
-
+/** The finished receipt for a shipment, QR code included. `issuedAt` is when
+ *  the receipt was issued — now, or when it was sent to a customer's inbox. */
+export async function receiptHtmlFor(shipment: Shipment, issuedAt = new Date()) {
   const trackUrl = new URL("/tracking", window.location.origin);
   trackUrl.searchParams.set("id", shipment.trackingId);
 
@@ -508,11 +502,22 @@ export async function openTrackingReceipt(shipment: Shipment) {
   } catch {
     // A receipt is still printable without the QR image.
   }
+  return buildReceiptHtml(shipment, { siteOrigin: window.location.origin, qrDataUrl, issuedAt });
+}
 
+/** Opens a print-ready shipment receipt. Call only from a user gesture so the
+ * browser is allowed to open the window. */
+export async function openTrackingReceipt(shipment: Shipment, issuedAt = new Date()) {
+  // The new document is written into this same-origin blank window. Do not use
+  // `noopener` here: some browsers return a null WindowProxy when it is set,
+  // making it impossible to populate the print sheet. The window is opened
+  // before anything is awaited, while the click still counts as a gesture.
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return false;
+
+  const html = await receiptHtmlFor(shipment, issuedAt);
   printWindow.document.open();
-  printWindow.document.write(
-    buildReceiptHtml(shipment, { siteOrigin: window.location.origin, qrDataUrl, issuedAt: new Date() }),
-  );
+  printWindow.document.write(html);
   printWindow.document.close();
   return true;
 }

@@ -94,6 +94,6 @@ export class ReviewsController {
 
 @Module({
   controllers: [ReviewsController],
-  providers: [ReviewsService, PrismaService],
+  providers: [ReviewsService],
 })
 export class ReviewsModule {}
