@@ -12,6 +12,7 @@ import {
 import { AuthService } from './auth.service';
 import { AdminGuard, AuthGuard } from './auth.guard';
 import type { AuthedRequest } from './auth.guard';
+import { assertHuman } from '../common/turnstile';
 
 /* Behind Render's proxy the socket address is the proxy's. A client can send
    its own X-Forwarded-For, and the proxy appends to it, so only the last
@@ -26,26 +27,29 @@ const clientIp = (req: AuthedRequest, fallback: string) =>
 export class AuthController {
   constructor(private auth: AuthService) {}
 
+  /* Both sign-in forms (customer and admin) post here; the captcha runs
+     before the password is even looked at, so a bot without a token costs
+     one cheap 400 and never touches the database. */
   @Post('login')
-  login(
+  async login(
     @Req() req: AuthedRequest,
     @Ip() ip: string,
-    @Body() body: { email: string; password: string },
+    @Body() body: { email: string; password: string; turnstileToken?: string },
   ) {
-    return this.auth.login(
-      body?.email ?? '',
-      body?.password ?? '',
-      clientIp(req, ip),
-    );
+    const from = clientIp(req, ip);
+    await assertHuman(body?.turnstileToken, from, 'login');
+    return this.auth.login(body?.email ?? '', body?.password ?? '', from);
   }
 
   @Post('register')
-  register(
+  async register(
     @Req() req: AuthedRequest,
     @Ip() ip: string,
     @Body() body: Record<string, unknown>,
   ) {
-    return this.auth.register(body, clientIp(req, ip));
+    const from = clientIp(req, ip);
+    await assertHuman(body?.turnstileToken, from, 'register');
+    return this.auth.register(body, from);
   }
 
   @Get('me')

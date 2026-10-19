@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { getUserToken, register, signIn } from "@/lib/accountApi";
 import { warmApi } from "@/lib/wake";
+import Turnstile, { turnstileEnabled, type TurnstileHandle } from "@/components/Turnstile";
 
 type Mode = "signin" | "register";
 
@@ -41,6 +42,10 @@ export default function AuthForm() {
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState("");
+  const [captcha, setCaptcha] = useState("");
+  const captchaRef = useRef<TurnstileHandle>(null);
+  /* With the captcha on, wait for its token; it usually arrives unseen. */
+  const waitingForCaptcha = turnstileEnabled && !captcha;
 
   /* Already signed in: go straight on. Also starts waking the free-tier API
      while the visitor types, so the submit does not pay the boot time. */
@@ -55,6 +60,7 @@ export default function AuthForm() {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError("");
+    setCaptcha(""); // the other tab's token is for the other action
     const url = new URL(window.location.href);
     if (m === "register") url.searchParams.set("mode", "register");
     else url.searchParams.delete("mode");
@@ -68,11 +74,15 @@ export default function AuthForm() {
       setError("Choose a password that meets all three rules below.");
       return;
     }
+    if (waitingForCaptcha) {
+      setError("Just a moment — the security check is finishing.");
+      return;
+    }
     setBusy(true);
     const slowTimer = setTimeout(() => setSlow(true), 4000);
     try {
       if (mode === "signin") {
-        const r = await signIn(email.trim(), password);
+        const r = await signIn(email.trim(), password, captcha || undefined);
         router.replace(r.admin ? "/admin" : next);
       } else {
         await register({
@@ -81,11 +91,14 @@ export default function AuthForm() {
           password,
           company: company.trim() || undefined,
           phone: phone.trim() || undefined,
+          turnstileToken: captcha || undefined,
         });
         router.replace(next === "/account" ? "/account?welcome=1" : next);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      /* The token was used up by this attempt; fetch a fresh one. */
+      captchaRef.current?.reset();
     } finally {
       clearTimeout(slowTimer);
       setBusy(false);
@@ -237,6 +250,15 @@ export default function AuthForm() {
           </div>
         )}
 
+        {/* Keyed by mode: sign-in and sign-up tokens carry different actions. */}
+        <Turnstile
+          key={mode}
+          ref={captchaRef}
+          action={mode === "signin" ? "login" : "register"}
+          onToken={setCaptcha}
+          onError={setError}
+        />
+
         {error && (
           <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             {error}
@@ -245,7 +267,7 @@ export default function AuthForm() {
 
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || waitingForCaptcha}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-deep py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(30,41,80,.22)] transition-all hover:bg-brand disabled:cursor-wait disabled:opacity-70"
         >
           {busy && <LoaderCircle size={17} className="animate-spin" />}
@@ -257,6 +279,11 @@ export default function AuthForm() {
               ? "Sign in"
               : "Create account"}
         </button>
+        {waitingForCaptcha && !error && (
+          <p className="text-center text-xs text-ink-mute" role="status">
+            Checking your connection is secure…
+          </p>
+        )}
         {slow && (
           <p className="text-center text-xs text-ink-mute" role="status">
             Still working — our service sleeps when idle and can take up to a minute to wake.

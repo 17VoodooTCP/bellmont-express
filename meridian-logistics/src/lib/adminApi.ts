@@ -45,10 +45,10 @@ async function call<T>(
 /* ── auth ── */
 export type AdminUser = { _id: string; name: string; email: string; role: string };
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string, turnstileToken?: string) {
   const data = await call<{ user: AdminUser; token: string }>(
     "/auth/login",
-    { method: "POST", body: JSON.stringify({ email, password }) },
+    { method: "POST", body: JSON.stringify({ email, password, turnstileToken }) },
     false
   );
   if (data.user.role !== "admin") throw new Error("This account is not an administrator.");

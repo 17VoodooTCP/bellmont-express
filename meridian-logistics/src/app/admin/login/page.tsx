@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/adminApi";
 import { LogoMark } from "@/components/Logo";
+import Turnstile, { turnstileEnabled, type TurnstileHandle } from "@/components/Turnstile";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -11,16 +12,24 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captcha, setCaptcha] = useState("");
+  const captchaRef = useRef<TurnstileHandle>(null);
+  const waitingForCaptcha = turnstileEnabled && !captcha;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (waitingForCaptcha) {
+      setError("Just a moment — the security check is finishing.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password, captcha || undefined);
       router.replace("/admin");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
+      captchaRef.current?.reset(); // tokens are single-use
     } finally {
       setBusy(false);
     }
@@ -64,13 +73,21 @@ export default function AdminLoginPage() {
             className="mt-1.5 w-full rounded-xl border border-line px-4 py-3 text-sm font-normal outline-none focus:border-ink"
           />
         </label>
+        <div className="mt-4">
+          <Turnstile ref={captchaRef} action="login" onToken={setCaptcha} onError={setError} />
+        </div>
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || waitingForCaptcha}
           className="mt-6 w-full rounded-full bg-ink py-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand disabled:opacity-50"
         >
           {busy ? "Signing in… (service may take a minute to wake)" : "Sign in"}
         </button>
+        {waitingForCaptcha && !error && (
+          <p className="mt-3 text-center text-xs text-ink-mute" role="status">
+            Checking your connection is secure…
+          </p>
+        )}
       </form>
     </div>
   );

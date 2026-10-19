@@ -79,8 +79,9 @@ export type Account = {
 type AuthResult = { user: Account; token: string };
 
 /** Signs in. An admin signing in here is handed to the console instead. */
-export async function signIn(email: string, password: string) {
-  const r = await call<AuthResult>("/auth/login", json("POST", { email, password }), false);
+/* turnstileToken: the captcha token from <Turnstile />, if the site uses one. */
+export async function signIn(email: string, password: string, turnstileToken?: string) {
+  const r = await call<AuthResult>("/auth/login", json("POST", { email, password, turnstileToken }), false);
   if (r.user.role === "admin") {
     localStorage.setItem(ADMIN_TOKEN_KEY, r.token);
     return { user: r.user, admin: true };
@@ -96,6 +97,7 @@ export async function register(data: {
   password: string;
   phone?: string;
   company?: string;
+  turnstileToken?: string;
 }) {
   const r = await call<AuthResult>("/auth/register", json("POST", data), false);
   setUserToken(r.token);
