@@ -80,3 +80,15 @@ export const STATUS_LABEL: Record<Shipment["status"], string> = {
   delivered: "Delivered",
   on_hold: "On hold",
 };
+
+/* Older holds were saved with the console's own wording, which customers
+   shouldn't see; treat it as "no reason given". */
+const INTERNAL_HOLD_NOTE = /^\s*(on hold\s*[:—-]\s*)?placed on hold by admin\.?\s*$/i;
+export const DEFAULT_HOLD_MESSAGE = "Held for a routine check. We'll update you as soon as it moves again.";
+
+/** The hold reason fit for a customer, or "" if there isn't one. */
+export const customerHoldReason = (reason?: string | null) =>
+  reason && !INTERNAL_HOLD_NOTE.test(reason) ? reason.trim() : "";
+
+/** What to tell a customer about a hold: the reason, or a calm default. */
+export const holdMessage = (reason?: string | null) => customerHoldReason(reason) || DEFAULT_HOLD_MESSAGE;

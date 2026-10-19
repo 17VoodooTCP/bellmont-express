@@ -6,11 +6,12 @@ import {
   Shipment,
   STATUS_PROGRESS,
   STATUS_LABEL,
+  holdMessage,
 } from "@/lib/api";
 import { useApiWarmth, warmOnIntent } from "@/components/ApiWarmth";
 import { warmApi } from "@/lib/wake";
 import RouteMap from "./RouteMap";
-import { openInvoice } from "@/lib/invoice";
+import { ShipmentCharges, ShipmentHistory, ShipmentParties } from "./ShipmentDetails";
 
 /* ── Milestone rail ── */
 const MILESTONES: { key: Shipment["status"]; label: string }[] = [
@@ -170,9 +171,9 @@ export default function TrackingExperience() {
                   </p>
                 )}
               </div>
-              {shipment.status === "on_hold" && shipment.holdReason && (
-                <p className="max-w-xs rounded-xl bg-brand-tint px-4 py-3 text-xs leading-relaxed text-brand-deep">
-                  On hold: {shipment.holdReason}
+              {shipment.status === "on_hold" && (
+                <p className="max-w-xs rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-xs leading-relaxed text-red-900">
+                  {holdMessage(shipment.holdReason)}
                 </p>
               )}
             </div>
@@ -185,78 +186,9 @@ export default function TrackingExperience() {
               and the journey summary underneath. */}
           <RouteMap shipment={shipment} />
 
-          {/* facts */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "From", value: shipment.senderName, sub: shipment.origin.city },
-              { label: "To", value: shipment.receiverName, sub: shipment.destination.city },
-              { label: "Weight", value: shipment.weight ? `${shipment.weight} lbs` : "N/A", sub: shipment.packageType || "" },
-              { label: "Current location", value: shipment.currentLocation?.city || "N/A", sub: "" },
-            ].map((f) => (
-              <div key={f.label} className="rounded-2xl border border-line p-5">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-ink-mute">{f.label}</p>
-                <p className="mt-2 truncate font-semibold">{f.value}</p>
-                {f.sub && <p className="mt-0.5 truncate text-sm text-ink-mute">{f.sub}</p>}
-              </div>
-            ))}
-          </div>
-
-          {/* invoices */}
-          {shipment.invoices && shipment.invoices.length > 0 && (
-            <div className="rounded-3xl border border-line p-7 md:p-9">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold">Invoices</h2>
-                  <p className="mt-1 text-sm text-ink-mute">
-                    {shipment.invoices.length} item{shipment.invoices.length > 1 ? "s" : ""} · Total $
-                    {shipment.invoices.reduce((s, i) => s + (i.amount || 0), 0).toFixed(2)}
-                  </p>
-                </div>
-                <button
-                  onClick={() => openInvoice(shipment)}
-                  className="rounded-full bg-iris px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-iris-deep"
-                >
-                  View and download invoice
-                </button>
-              </div>
-              <ul className="mt-6 divide-y divide-line">
-                {shipment.invoices.map((inv, i) => (
-                  <li key={inv._id ?? i} className="flex items-center justify-between gap-4 py-3.5 text-sm">
-                    <span className="min-w-0 truncate">{inv.description || "Service fee"}</span>
-                    <span className="flex shrink-0 items-center gap-3">
-                      <span className="font-semibold">${(inv.amount || 0).toFixed(2)}</span>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide ${inv.paid ? "bg-green-100 text-green-700" : "bg-brand-tint text-brand-deep"}`}>
-                        {inv.paid ? "PAID" : "DUE"}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* journey log */}
-          {shipment.timeline && shipment.timeline.length > 0 && (
-            <div className="rounded-3xl border border-line p-7 md:p-9">
-              <h2 className="text-lg font-semibold">Journey log</h2>
-              <ol className="mt-6 space-y-0">
-                {[...shipment.timeline].reverse().map((ev, i, all) => (
-                  <li key={i} className="relative flex gap-5 pb-7 last:pb-0">
-                    {i < all.length - 1 && (
-                      <span className="absolute left-[7px] top-5 h-full w-0.5 bg-line" aria-hidden="true" />
-                    )}
-                    <span className={`relative mt-1.5 h-4 w-4 shrink-0 rounded-full ${i === 0 ? "bg-brand" : "border-2 border-line bg-white"}`} />
-                    <div className="min-w-0">
-                      <p className="font-medium">{ev.description}</p>
-                      <p className="mt-0.5 text-sm text-ink-mute">
-                        {ev.location} · {new Date(ev.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
+          <ShipmentParties shipment={shipment} />
+          <ShipmentCharges shipment={shipment} />
+          <ShipmentHistory shipment={shipment} />
         </div>
       )}
     </div>

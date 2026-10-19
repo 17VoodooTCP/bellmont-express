@@ -102,6 +102,19 @@ describe('ChatBotService', () => {
     );
   });
 
+  it('never shows customers the console wording for a hold', async () => {
+    shipments.CP111111111US = {
+      trackingId: 'CP111111111US',
+      status: 'on_hold',
+      currentLocation: { city: 'Mobile, AL' },
+      estimatedDelivery: null,
+      holdReason: 'Placed on hold by admin',
+    };
+    const r = await ask('CP111111111US');
+    expect(r.message).not.toMatch(/admin/i);
+    expect(r.message).toContain('routine check');
+  });
+
   it('says clearly when a tracking number is not found', async () => {
     const r = await ask('AB000000000US');
     expect(r.message).toContain("couldn't find");

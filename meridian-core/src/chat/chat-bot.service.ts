@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { customerHoldReason } from '../common/hold';
 
 /* The Bellmont support assistant.
 
@@ -750,11 +751,12 @@ export class ChatBotService {
       lines.push(`Estimated delivery: ${formatDate(s.estimatedDelivery)}`);
 
     let note = '';
-    if (s.status === 'on_hold')
-      note = s.holdReason
-        ? `It's on hold: ${s.holdReason}.`
-        : "It's on hold at the moment. A person can tell you why.";
-    else if (s.status === 'out_for_delivery')
+    if (s.status === 'on_hold') {
+      const reason = customerHoldReason(s.holdReason).replace(/\.+$/, '');
+      note = reason
+        ? `It's on hold: ${reason}.`
+        : "It's on hold for a routine check at the moment. A person can tell you more.";
+    } else if (s.status === 'out_for_delivery')
       note = "It's out for delivery and should arrive today.";
     else if (s.status === 'delivered')
       note =

@@ -36,7 +36,7 @@ import {
   type MyShipment,
   type ShipmentRequest,
 } from "@/lib/accountApi";
-import { STATUS_LABEL } from "@/lib/api";
+import { STATUS_LABEL, holdMessage } from "@/lib/api";
 import { openTrackingReceipt } from "@/lib/trackingReceipt";
 
 type Tab = "shipments" | "requests";
@@ -75,9 +75,9 @@ function ShipmentRow({ s, open, onToggle }: { s: MyShipment; open: boolean; onTo
       {open && (
         <div className="border-t border-line bg-ocean/40 px-5 pb-6 pt-5">
           <ProgressRail status={s.status} />
-          {s.status === "on_hold" && s.holdReason && (
+          {s.status === "on_hold" && (
             <p className="mt-4 flex gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              <CircleAlert size={17} className="mt-px shrink-0" /> On hold — {s.holdReason}
+              <CircleAlert size={17} className="mt-px shrink-0" /> On hold — {holdMessage(s.holdReason)}
             </p>
           )}
 

@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 import type { Shipment } from "./api";
-import { STATUS_LABEL } from "./api";
+import { STATUS_LABEL, holdMessage } from "./api";
 import { LOGO_SVG_STRING } from "@/components/Logo";
 import { SITE_URL } from "./site";
 
@@ -212,8 +212,8 @@ export function buildReceiptHtml(shipment: Shipment, opts: ReceiptOptions): stri
     return `<li class="step ${state}"><span class="dot"></span><span class="sl">${label}</span></li>`;
   }).join("");
 
-  const hold = held && shipment.holdReason
-    ? `<div class="notice" role="note">${ICONS.alert}<div><b>This shipment is on hold.</b> ${escapeHtml(shipment.holdReason)}</div></div>`
+  const hold = held
+    ? `<div class="notice" role="note">${ICONS.alert}<div><b>This shipment is on hold.</b> ${escapeHtml(holdMessage(shipment.holdReason))}</div></div>`
     : "";
 
   const history = events.length

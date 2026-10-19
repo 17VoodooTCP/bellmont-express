@@ -3,6 +3,7 @@ import { Prisma, Shipment, ShipmentStatus } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService, userRoom } from '../realtime/notifications.service';
 import { EMAIL_RE } from '../common/validate';
+import { customerHoldReason } from '../common/hold';
 
 /* Wire shape stays identical to the legacy API so the frontend needs no changes */
 const toWire = (s: Shipment) => ({ _id: s.id, ...s });
@@ -42,8 +43,8 @@ export class ShipmentsService {
       type: 'shipment.status',
       title: `${shipment.trackingId}: ${label}`,
       body:
-        shipment.status === 'on_hold' && shipment.holdReason
-          ? `On hold — ${shipment.holdReason}`
+        shipment.status === 'on_hold' && customerHoldReason(shipment.holdReason)
+          ? `On hold — ${customerHoldReason(shipment.holdReason)}`
           : `Your shipment is now ${label.toLowerCase()}.`,
       link: `/account/shipments?open=${shipment.id}`,
     });
@@ -200,7 +201,11 @@ export class ShipmentsService {
     const existing = await this.prisma.shipment.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Shipment not found');
 
-    const reason = holdReason || 'Placed on hold by admin';
+    /* Customers read this on their tracking page and receipt, so the
+       default is written for them, not for the console. */
+    const reason =
+      holdReason?.trim() ||
+      'Held for a routine check. We will update you as soon as it moves again.';
     const shipment = await this.prisma.shipment.update({
       where: { id },
       data: {
