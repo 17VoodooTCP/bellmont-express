@@ -149,7 +149,7 @@ export default function AuthForm() {
               minLength={2}
               maxLength={80}
               autoComplete="name"
-              placeholder="Amara Osei"
+              placeholder="James Carter"
               className={field}
             />
           </div>
