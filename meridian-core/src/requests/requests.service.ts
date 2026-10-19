@@ -385,7 +385,20 @@ export class RequestsService {
     });
     this.notifications.emit(userRoom(existing.userId), 'request:update', wire);
     this.notifications.emit(ADMIN_ROOM, 'request:update', wire);
-    return { request: wire, shipment: { _id: shipment.id, ...shipment } };
+    /* Cities the geocoder couldn't place (a customer typo, say) are saved at
+       0,0 and would leave the tracking map incomplete; tell the admin now,
+       while they can still correct it. */
+    const unlocated = [
+      { label: 'Origin', point: origin },
+      { label: 'Destination', point: destination },
+    ]
+      .filter(({ point }) => point.city.trim() && !point.lat && !point.lng)
+      .map(({ label, point }) => `${label}: ${point.city}`);
+    return {
+      request: wire,
+      shipment: { _id: shipment.id, ...shipment },
+      unlocated,
+    };
   }
 
   async reject(

@@ -15,6 +15,7 @@ import {
   updateShipment,
 } from "@/lib/adminApi";
 import SendDocumentDialog from "@/components/admin/SendDocumentDialog";
+import CityField, { type CityCheck, type CityValue } from "@/components/admin/CityField";
 import { ADMIN_LIVE_EVENT } from "@/components/admin/AdminNotifier";
 import type { Invoice, Shipment } from "@/lib/api";
 import { STATUS_LABEL } from "@/lib/api";
@@ -52,6 +53,13 @@ const emptyForm = (): Partial<Shipment> => ({
   invoices: [],
 });
 
+type CityKey = "origin" | "destination" | "currentLocation";
+const CITY_FIELDS = [
+  ["Origin city", "origin"],
+  ["Destination city", "destination"],
+  ["Current location", "currentLocation"],
+] as const satisfies readonly (readonly [string, CityKey])[];
+
 /* fill missing coordinates from the city name on save */
 async function geocodeIfNeeded(p?: { city: string; lat: number; lng: number }) {
   if (!p?.city?.trim() || Math.abs(p.lat) > 0.01 || Math.abs(p.lng) > 0.01) return p;
@@ -76,6 +84,7 @@ export default function AdminDashboard() {
   const [receiptShipment, setReceiptShipment] = useState<AdminShipment | null>(null);
   const [sendFor, setSendFor] = useState<AdminShipment | null>(null);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [cityChecks, setCityChecks] = useState<Partial<Record<CityKey, CityCheck>>>({});
 
   /* Bookings awaiting review, kept current as customers submit them. */
   useEffect(() => {
@@ -137,6 +146,19 @@ export default function AdminDashboard() {
 
   const save = async () => {
     if (!editing) return;
+    /* A city the map can't place gives the customer a broken tracking map.
+       Allow it (an internal depot name, say) but only on purpose. */
+    const unplaced = CITY_FIELDS.filter(([, key]) => cityChecks[key] === "missing").map(
+      ([label, key]) => `${label}: “${editing[key]?.city ?? ""}”`,
+    );
+    if (
+      unplaced.length &&
+      !window.confirm(
+        `These can't be found on the map, so the customer's tracking map will be incomplete:\n\n${unplaced.join("\n")}\n\nSave anyway?`,
+      )
+    ) {
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -179,8 +201,9 @@ export default function AdminDashboard() {
     setFee({ amount: "", description: "", type: "shipping_fee" });
   };
 
-  const geo = (key: "origin" | "destination" | "currentLocation", city: string) =>
-    editing && setEditing({ ...editing, [key]: { city, lat: 0, lng: 0 } });
+  /* Functional update: the city checker reports back after a short pause,
+     and must not overwrite anything typed meanwhile. */
+  const geo = (key: CityKey, v: CityValue) => setEditing((e) => (e ? { ...e, [key]: v } : e));
 
   return (
     <div className="mx-auto max-w-6xl px-5 pb-28 pt-10">
@@ -211,7 +234,7 @@ export default function AdminDashboard() {
             Reviews
           </Link>
           <button
-            onClick={() => { setEditing(emptyForm()); }}
+            onClick={() => { setCityChecks({}); setEditing(emptyForm()); }}
             className="rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand"
           >
             New shipment
@@ -310,7 +333,7 @@ export default function AdminDashboard() {
                   >
                     Print receipt
                   </button>
-                  <button onClick={() => setEditing({ ...s })} className="mr-3 text-xs font-semibold text-brand hover:underline">Edit</button>
+                  <button onClick={() => { setCityChecks({}); setEditing({ ...s }); }} className="mr-3 text-xs font-semibold text-brand hover:underline">Edit</button>
                   <button
                     onClick={() => { if (confirm(`Delete ${s.trackingId}?`)) deleteShipment(s._id).then(refresh); }}
                     className="text-xs font-semibold text-red-600 hover:underline"
@@ -360,20 +383,14 @@ export default function AdminDashboard() {
                   />
                 </label>
               ))}
-              {([
-                ["Origin city", "origin"],
-                ["Destination city", "destination"],
-                ["Current location", "currentLocation"],
-              ] as const).map(([label, key]) => (
-                <label key={key} className="block text-[11px] font-semibold uppercase tracking-widest text-ink-mute">
-                  {label}
-                  <input
-                    value={editing[key]?.city ?? ""}
-                    onChange={(e) => geo(key, e.target.value)}
-                    placeholder="City name (coordinates auto-resolve)"
-                    className="mt-1 w-full rounded-xl border border-line px-3.5 py-2.5 text-sm font-normal normal-case tracking-normal outline-none focus:border-ink"
-                  />
-                </label>
+              {CITY_FIELDS.map(([label, key]) => (
+                <CityField
+                  key={`${editing._id ?? "new"}-${key}`}
+                  label={label}
+                  value={editing[key]}
+                  onChange={(v) => geo(key, v)}
+                  onCheck={(s) => setCityChecks((c) => ({ ...c, [key]: s }))}
+                />
               ))}
               <label className="block text-[11px] font-semibold uppercase tracking-widest text-ink-mute">
                 Estimated delivery

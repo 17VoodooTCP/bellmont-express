@@ -172,7 +172,8 @@ export const listRequests = (status: RequestStatus | "all" = "pending") =>
   );
 
 export const approveRequest = (id: string, body: { estimatedDelivery?: string; note?: string }) =>
-  call<{ request: ShipmentRequest; shipment: AdminShipment }>(`/requests/${id}/approve`, post(body));
+  /* unlocated: cities the server couldn't place on the map (customer typos). */
+  call<{ request: ShipmentRequest; shipment: AdminShipment; unlocated?: string[] }>(`/requests/${id}/approve`, post(body));
 
 export const rejectRequest = (id: string, reason: string) =>
   call<{ request: ShipmentRequest }>(`/requests/${id}/reject`, post({ reason }));

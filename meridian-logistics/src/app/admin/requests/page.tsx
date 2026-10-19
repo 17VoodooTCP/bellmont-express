@@ -41,6 +41,8 @@ function Detail({ r, onChanged }: { r: ShipmentRequest; onChanged: (next: Shipme
   const [busy, setBusy] = useState<"" | "approve" | "reject" | "send">("");
   const [error, setError] = useState("");
   const [sent, setSent] = useState("");
+  /* Customer-typed cities the map couldn't place, reported on approval. */
+  const [unplaced, setUnplaced] = useState<string[]>([]);
 
   const run = async (kind: "approve" | "reject" | "send", fn: () => Promise<void>) => {
     setBusy(kind);
@@ -59,6 +61,7 @@ function Detail({ r, onChanged }: { r: ShipmentRequest; onChanged: (next: Shipme
   const approve = () =>
     run("approve", async () => {
       const res = await approveRequest(r.id, { estimatedDelivery: eta || undefined, note: note.trim() || undefined });
+      setUnplaced(res.unlocated ?? []);
       onChanged(res.request);
     });
 
@@ -208,6 +211,19 @@ function Detail({ r, onChanged }: { r: ShipmentRequest; onChanged: (next: Shipme
               <span className="notranslate font-bold tracking-wide">{r.shipment.trackingId}</span>
             </p>
             {r.reviewNote && <p className="rounded-xl bg-ocean px-4 py-3 text-sm text-ink-soft">Note sent: {r.reviewNote}</p>}
+            {unplaced.length > 0 && (
+              <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold">Check the spelling: we couldn&rsquo;t place these on the map.</p>
+                <ul className="mt-1 list-disc pl-5">
+                  {unplaced.map((u) => (
+                    <li key={u} className="notranslate">{u}</li>
+                  ))}
+                </ul>
+                <p className="mt-1.5 text-xs">
+                  The customer&rsquo;s tracking map will be incomplete until it&rsquo;s fixed. Open <b>Manage shipment</b>, edit it and correct the city.
+                </p>
+              </div>
+            )}
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
